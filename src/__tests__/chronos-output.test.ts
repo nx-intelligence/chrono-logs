@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChronosOutput } from '../outputs/chronos-output';
-import type { LoggerPackageConfig, XLoggerChronosOptions } from '../types';
+import type { LoggerPackageConfig, XLoggerChronosOptions, XLoggerLogMeta } from '../types';
 
 // Mock chronos-db
 const mockChronos = {
@@ -58,6 +58,9 @@ describe('ChronosOutput', () => {
       correlationId: 'test-123',
       tenantId: 'tenant-a',
       meta: {
+        source: 'application',
+        correlationId: 'test-123',
+        tenantId: 'tenant-a',
         customField: 'custom-value'
       }
     });
@@ -88,9 +91,11 @@ describe('ChronosOutput', () => {
       expect.objectContaining({
         level: 'info',
         message: 'test message',
-        source: 'application'
+        source: 'application',
+        package: 'test-package',
+        service: 'test-package'
       }),
-      'test-package',
+      'application',
       'log:info'
     );
   });

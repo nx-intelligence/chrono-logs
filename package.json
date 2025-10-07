@@ -1,6 +1,9 @@
 {
-  "name": "@x-developer/x-logger",
+  "name": "x-logger",
   "version": "0.1.0",
+  "description": "A thin wrapper around logs-gateway that adds Chronos-DB v2.0 persistence with recursion safety and tenant/correlation propagation",
+  "keywords": ["logging", "chronos", "logs-gateway", "persistence", "multi-tenant", "correlation"],
+  "author": "nx-morpheus",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +12,19 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nx-intelligence/x-logger.git"
+  },
+  "homepage": "https://github.com/nx-intelligence/x-logger#readme",
+  "bugs": {
+    "url": "https://github.com/nx-intelligence/x-logger/issues"
   },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",

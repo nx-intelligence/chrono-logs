@@ -1,24 +1,38 @@
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
+// Import and re-export all logs-gateway types
+import type { 
+  LogLevel, 
+  LogFormat, 
+  LoggingConfig, 
+  CustomLogger, 
+  LoggerPackageConfig, 
+  LogEntry, 
+  InternalLoggingConfig, 
+  LogMeta, 
+  RoutingMeta, 
+  UnifiedLoggerConfig, 
+  UnifiedLoggerTransports 
+} from 'logs-gateway';
 
-export interface RoutingMeta {
-  allowedOutputs?: string[];
-  blockOutputs?: string[];
-  reason?: string;
-  tags?: string[];
-}
+export type { 
+  LogLevel, 
+  LogFormat, 
+  LoggingConfig, 
+  CustomLogger, 
+  LoggerPackageConfig, 
+  LogEntry, 
+  InternalLoggingConfig, 
+  LogMeta, 
+  RoutingMeta, 
+  UnifiedLoggerConfig, 
+  UnifiedLoggerTransports 
+};
 
-export interface LogMeta {
-  [key: string]: any;
-  source?: 'application' | 'chronos-db' | 'logs-gateway-internal' | string;
-  correlationId?: string;
+// Extend LogMeta to add x-logger specific fields
+export interface XLoggerLogMeta extends LogMeta {
+  /** Tenant ID for multi-tenant logging */
   tenantId?: string;
-  _routing?: RoutingMeta;
-}
-
-export interface LoggerPackageConfig {
-  packageName: string;
-  envPrefix?: string;
-  debugNamespace?: string;
+  /** Source identifier with x-logger specific values */
+  source?: 'application' | 'chronos-db' | 'logs-gateway-internal' | string;
 }
 
 export interface XLoggerChronosOptions {
@@ -26,34 +40,80 @@ export interface XLoggerChronosOptions {
   chronosInstance?: any; // ReturnType<typeof initChronos>
   chronosConfig?: any; // import('chronos-db').ChronosConfig
 
-  // Logs database options
-  collection?: string; // default 'logs'
+  // New: centralized collection naming (default: logs/activities/errors)
+  collections?: {
+    logs?: string; // default 'logs'
+    activities?: string; // default 'activities'
+    errors?: string; // default 'errors'
+  };
 
-  // Tenant resolution (optional; logs DB is centralized, but we store tenantId)
-  tenantIdResolver?: (meta?: LogMeta) => string | undefined;
+  // Back-compat (deprecated): if provided, used as fallback
+  collection?: string; // previous logs collection
+  activityCollection?: string; // previous activity collection
+  errorCollection?: string; // new, fallback for errors
 
-  // Async write behavior
+  // New: control how unbound response events are handled
+  unboundResponseHandling?: 'errors' | 'activities' | 'both' | 'drop'; // default 'both'
+
+  // Behavior/perf
+  tenantIdResolver?: (meta?: XLoggerLogMeta) => string | undefined;
   fireAndForget?: boolean; // default true
   maxInFlight?: number; // default 100
-  onError?: (err: unknown, record: any) => void; // default: noop
+  onError?: (err: unknown, record: any) => void; // default noop
 }
 
 export interface XLoggerConfig {
   // The existing logs-gateway config (console/file/unified-logger, level, etc.)
-  gateway: any; // import('logs-gateway').LoggingConfig
+  gateway: LoggingConfig;
 
   // Chronos persistence options
   chronos: XLoggerChronosOptions;
 }
 
-export interface XLogger {
-  debug(msg: string, meta?: LogMeta): void;
-  info(msg: string, meta?: LogMeta): void;
-  warn(msg: string, meta?: LogMeta): void;
-  error(msg: string, meta?: LogMeta): void;
+// AI Activity logging types
+export interface AiActivityRequest {
+  jobId: string;
+  request: any;
+  context?: any;
+  activityMeta?: any; // Optional hints for analytics
+  model?: string;
+  provider?: string;
+  userId?: string;
 
-  getConfig(): Readonly<XLoggerConfig>;
+  // New: let caller set a requestStatus if desired; defaults to 'accepted'
+  requestStatus?: 'accepted' | 'rejected' | 'error' | (string & {});
+}
+
+export interface AiActivityResponse {
+  jobId: string;
+  response?: any; // present on success
+  cost?: any;
+  error?: { 
+    code?: string; 
+    message: string; 
+    data?: any 
+  };
+
+  // New: let caller override responseStatus; default computed from error
+  responseStatus?: 'completed' | 'failed' | 'timeout' | 'error' | (string & {});
+}
+
+// XLogger extends all logs-gateway capabilities plus adds Chronos persistence
+export interface XLogger {
+  // All logs-gateway methods
+  debug(message: string, data?: XLoggerLogMeta): void;
+  info(message: string, data?: XLoggerLogMeta): void;
+  warn(message: string, data?: XLoggerLogMeta): void;
+  error(message: string, data?: XLoggerLogMeta): void;
   
-  // Optional: drain in-flight writes (if fireAndForget=false or for shutdown)
+  // AI activity APIs (new)
+  logActivityRequest(req: AiActivityRequest, meta?: XLoggerLogMeta): void;
+  logActivityResponse(res: AiActivityResponse, meta?: XLoggerLogMeta): void;
+  
+  // All logs-gateway utility methods
+  getConfig(): Readonly<XLoggerConfig>;
+  isLevelEnabled(level: LogLevel): boolean;
+  
+  // X-logger specific methods
   flush?(opts?: { timeoutMs?: number }): Promise<void>;
 }

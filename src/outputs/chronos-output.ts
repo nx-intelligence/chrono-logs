@@ -1,4 +1,4 @@
-import type { LogLevel, LogMeta, LoggerPackageConfig } from '../types';
+import type { LogLevel, LoggerPackageConfig, XLoggerLogMeta } from '../types';
 import type { XLoggerChronosOptions } from '../types';
 
 // Import chronos-db dynamically to avoid circular dependencies
@@ -28,7 +28,7 @@ export class ChronosOutput {
   private fireAndForget: boolean;
   private maxInFlight: number;
   private inFlight = 0;
-  private tenantIdResolver?: (m?: LogMeta) => string | undefined;
+  private tenantIdResolver?: (m?: XLoggerLogMeta) => string | undefined;
   private onError?: (err: unknown, record: any) => void;
 
   constructor(
@@ -47,14 +47,15 @@ export class ChronosOutput {
       this.chronos = null as any; // Will be set in first write call
     }
     
-    this.collection = cfg.collection ?? 'logs';
+    // Use new collections config with fallback to old collection config
+    this.collection = cfg.collections?.logs ?? cfg.collection ?? 'logs';
     this.fireAndForget = cfg.fireAndForget ?? true;
     this.maxInFlight = cfg.maxInFlight ?? 100;
     this.tenantIdResolver = cfg.tenantIdResolver;
     this.onError = cfg.onError;
   }
 
-  private toRecord(level: LogLevel, message: string, meta?: LogMeta) {
+  private toRecord(level: LogLevel, message: string, meta?: XLoggerLogMeta) {
     const now = new Date().toISOString();
     const tenantId = meta?.tenantId ?? this.tenantIdResolver?.(meta);
     
@@ -91,7 +92,7 @@ export class ChronosOutput {
     } as any); // The Chronos v2.0 API supports databaseType 'logs'
   }
 
-  write(level: LogLevel, message: string, meta?: LogMeta) {
+  write(level: LogLevel, message: string, meta?: XLoggerLogMeta) {
     // Recursion safety: never persist logs that originate from Chronos
     if (meta?.source === 'chronos-db') return;
 
@@ -134,7 +135,7 @@ export class ChronosOutput {
   }
 }
 
-function sanitizeMeta(meta?: LogMeta) {
+function sanitizeMeta(meta?: XLoggerLogMeta) {
   if (!meta) return undefined;
   
   // Drop internal routing hints to keep stored docs clean

@@ -1,13 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createXLogger } from '../index';
-import type { LoggerPackageConfig, XLoggerConfig } from '../types';
+import type { LoggerPackageConfig, XLoggerConfig, XLoggerLogMeta, AiActivityRequest, AiActivityResponse } from '../types';
 
 // Mock logs-gateway
 const mockLogger = {
   debug: vi.fn(),
   info: vi.fn(),
   warn: vi.fn(),
-  error: vi.fn()
+  error: vi.fn(),
+  isLevelEnabled: vi.fn().mockReturnValue(true),
+  getConfig: vi.fn().mockReturnValue({})
 };
 
 vi.mock('logs-gateway', () => ({
@@ -117,5 +119,58 @@ describe('XLogger', () => {
     
     expect(flushPromise).toBeInstanceOf(Promise);
     await expect(flushPromise).resolves.toBeUndefined();
+  });
+
+  it('should log AI activity requests', async () => {
+    const request: AiActivityRequest = {
+      jobId: 'job-123',
+      request: { prompt: 'Test prompt' },
+      model: 'gpt-4',
+      provider: 'openai',
+      userId: 'user-456'
+    };
+
+    xlogger.logActivityRequest(request, { tenantId: 'tenant-a' });
+
+    // Wait for async operation
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Should not call logs-gateway for AI activities
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('should log AI activity responses', async () => {
+    const response: AiActivityResponse = {
+      jobId: 'job-123',
+      response: { text: 'Test response' },
+      cost: { tokens: 100, usd: 0.01 }
+    };
+
+    xlogger.logActivityResponse(response, { tenantId: 'tenant-a' });
+
+    // Wait for async operation
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Should not call logs-gateway for AI activities
+    expect(mockLogger.info).not.toHaveBeenCalled();
+  });
+
+  it('should handle AI activity with error', async () => {
+    const response: AiActivityResponse = {
+      jobId: 'job-456',
+      error: {
+        code: 'RATE_LIMIT',
+        message: 'Rate limit exceeded',
+        data: { retryAfter: 60 }
+      }
+    };
+
+    xlogger.logActivityResponse(response, { tenantId: 'tenant-b' });
+
+    // Wait for async operation
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Should not call logs-gateway for AI activities
+    expect(mockLogger.error).not.toHaveBeenCalled();
   });
 });

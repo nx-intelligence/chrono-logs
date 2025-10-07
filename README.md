@@ -4,12 +4,14 @@ A thin wrapper around `logs-gateway` that adds Chronos-DB v2.0 persistence into 
 
 ## What x-logger adds
 
-- **Chronos persistence**: Writes each log to Chronos-DB v2.0 under `databaseType=logs`, `collection=logs`
+- **Chronos persistence**: Writes each log to Chronos-DB v2.0 under `databaseType=logs` with configurable collections
+- **AI Activity logging**: Specialized logging for AI requests/responses with job binding and status tracking
 - **Multi-tenant metadata**: Optional `tenantId` propagation stored on each log record
 - **Correlation + source**: First-class fields for `correlationId` and `source`, persisted with the log
 - **Recursion safety**: Never persists logs that originate from `source='chronos-db'`; never re-log persistence errors to Chronos
 - **Backward compatibility**: Same logger methods (`debug`, `info`, `warn`, `error`) and keeps your unified logger/console/file outputs from logs-gateway
 - **JSON-only Chronos config**: Accept a `ChronosConfig` object or a pre-initialized instance—no envs
+- **Configurable collections**: Separate collections for logs, activities, and errors with flexible unbound response handling
 
 ## Installation
 
@@ -71,11 +73,16 @@ const xlogger = createXLogger(
       logToConsole: true,
       logLevel: 'info'
     },
-    chronos: {
-      chronosConfig,
-      collection: 'logs',
-      tenantIdResolver: (meta) => meta?.tenantId
-    }
+  chronos: {
+    chronosConfig,
+    collections: {
+      logs: 'logs',
+      activities: 'activities',
+      errors: 'errors'
+    },
+    unboundResponseHandling: 'both', // store in activities (missingStart) and errors
+    tenantIdResolver: (meta) => meta?.tenantId
+  }
   }
 );
 
@@ -85,6 +92,29 @@ xlogger.info('Application boot', {
   correlationId: 'req-1234',
   tenantId: 'tenant-a',
   http: { method: 'GET', path: '/' }
+});
+
+// AI Activity logging
+xlogger.logActivityRequest({
+  jobId: 'job-42',
+  request: { prompt: 'Summarize this text' },
+  context: { userTier: 'pro' },
+  model: 'gpt-4o-mini',
+  provider: 'openai',
+  userId: 'user-123'
+}, {
+  tenantId: 'tenant-a',
+  correlationId: 'req-1'
+});
+
+// Later, when response arrives
+xlogger.logActivityResponse({
+  jobId: 'job-42',
+  response: { text: 'Summary...' },
+  cost: { inputTokens: 250, outputTokens: 120, usd: 0.0068 }
+}, {
+  tenantId: 'tenant-a',
+  correlationId: 'req-1'
 });
 ```
 
@@ -103,11 +133,19 @@ Creates a new x-logger instance.
 ### Logger Methods
 
 ```typescript
-xlogger.debug(msg: string, meta?: LogMeta): void;
-xlogger.info(msg: string, meta?: LogMeta): void;
-xlogger.warn(msg: string, meta?: LogMeta): void;
-xlogger.error(msg: string, meta?: LogMeta): void;
+// Standard logging methods (from logs-gateway)
+xlogger.debug(message: string, data?: XLoggerLogMeta): void;
+xlogger.info(message: string, data?: XLoggerLogMeta): void;
+xlogger.warn(message: string, data?: XLoggerLogMeta): void;
+xlogger.error(message: string, data?: XLoggerLogMeta): void;
+
+// AI Activity logging methods
+xlogger.logActivityRequest(req: AiActivityRequest, meta?: XLoggerLogMeta): void;
+xlogger.logActivityResponse(res: AiActivityResponse, meta?: XLoggerLogMeta): void;
+
+// Utility methods
 xlogger.getConfig(): Readonly<XLoggerConfig>;
+xlogger.isLevelEnabled(level: LogLevel): boolean;
 xlogger.flush(opts?: { timeoutMs?: number }): Promise<void>;
 ```
 
@@ -136,9 +174,9 @@ interface XLoggerChronosOptions {
 }
 ```
 
-## Data Shape
+## Data Shapes
 
-Logs are stored in Chronos with the following structure:
+### Standard Logs (logs collection)
 
 ```typescript
 {
@@ -155,6 +193,65 @@ Logs are stored in Chronos with the following structure:
     http: { method: 'GET', path: '/' },
     // ... any user-provided fields except _routing
   }
+}
+```
+
+### AI Activities (activities collection)
+
+**Request:**
+```typescript
+{
+  type: 'ai-activity',
+  jobId: 'job-123',
+  status: 'in-progress',
+  requestStatus: 'accepted',
+  responseStatus: 'pending',
+  startTs: '2025-01-07T12:00:00.000Z',
+  startMs: 1696680000000,
+  request: { prompt: 'Summarize this text' },
+  context: { userTier: 'pro' },
+  model: 'gpt-4o-mini',
+  provider: 'openai',
+  userId: 'user-123',
+  service: 'web-app',
+  env: 'production',
+  source: 'application',
+  tenantId: 'tenant-a',
+  correlationId: 'req-abc'
+}
+```
+
+**Response (enriched):**
+```typescript
+{
+  // ... all request fields plus:
+  endTs: '2025-01-07T12:00:00.450Z',
+  endMs: 1696680000450,
+  durationMs: 450,
+  status: 'completed', // or 'failed'
+  responseStatus: 'completed', // or 'failed'|'timeout'|'error'
+  response: { text: 'Summary...' },
+  cost: { inputTokens: 250, outputTokens: 120, usd: 0.0068 }
+}
+```
+
+### AI Activity Errors (errors collection)
+
+```typescript
+{
+  type: 'ai-activity-error',
+  reason: 'unbound-response',
+  jobId: 'job-123',
+  responseStatus: 'completed',
+  endTs: '2025-01-07T12:00:00.450Z',
+  endMs: 1696680000450,
+  response: { text: 'Summary...' },
+  cost: { inputTokens: 250, outputTokens: 120, usd: 0.0068 },
+  service: 'web-app',
+  env: 'production',
+  source: 'application',
+  tenantId: 'tenant-a',
+  correlationId: 'req-abc'
 }
 ```
 

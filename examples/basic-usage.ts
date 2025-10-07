@@ -1,4 +1,4 @@
-import { createXLogger } from '@x-developer/x-logger';
+import { createXLogger } from 'x-logger';
 
 // Example Chronos configuration for centralized logs database
 const chronosConfig = {
@@ -84,6 +84,70 @@ async function example() {
       responseTime: 150
     }
   });
+
+  // AI Activity logging - Request
+  xlogger.logActivityRequest({
+    jobId: 'job-42',
+    request: { 
+      prompt: 'Summarize this text: "The quick brown fox..."',
+      maxTokens: 100
+    },
+    context: { 
+      userTier: 'pro',
+      feature: 'summarization'
+    },
+    activityMeta: { 
+      feature: 'summarization',
+      complexity: 'simple'
+    },
+    model: 'gpt-4o-mini',
+    provider: 'openai',
+    userId: 'user-123',
+    requestStatus: 'accepted'
+  }, {
+    tenantId: 'tenant-a',
+    correlationId: 'req-1'
+  });
+
+  // Simulate AI processing time
+  await new Promise(resolve => setTimeout(resolve, 100));
+
+  // AI Activity logging - Response
+  xlogger.logActivityResponse({
+    jobId: 'job-42',
+    response: { 
+      text: 'A quick brown fox jumps over a lazy dog.',
+      usage: { promptTokens: 15, completionTokens: 12 }
+    },
+    cost: { 
+      inputTokens: 15, 
+      outputTokens: 12, 
+      usd: 0.0003 
+    }
+  }, {
+    tenantId: 'tenant-a',
+    correlationId: 'req-1'
+  });
+
+  // AI Activity with error
+  xlogger.logActivityRequest({
+    jobId: 'job-43',
+    request: { prompt: 'Generate code' },
+    model: 'gpt-4',
+    provider: 'openai',
+    requestStatus: 'accepted'
+  }, { tenantId: 'tenant-b' });
+
+  // Simulate error response
+  xlogger.logActivityResponse({
+    jobId: 'job-43',
+    error: {
+      code: 'RATE_LIMIT',
+      message: 'Rate limit exceeded',
+      data: { retryAfter: 60 }
+    },
+    responseStatus: 'failed'
+  }, { tenantId: 'tenant-b' });
 
   // Error logging
   xlogger.error('Database connection failed', {
