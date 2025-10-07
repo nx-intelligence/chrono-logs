@@ -1,4 +1,4 @@
-import { createXLogger } from 'x-logger-enterprise';
+import { createXLogger } from 'nx-logging';
 
 // Example Chronos configuration for centralized logs database
 const chronosConfig = {

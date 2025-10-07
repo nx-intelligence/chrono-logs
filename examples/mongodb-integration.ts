@@ -1,8 +1,8 @@
-import { createXLogger } from 'x-logger-enterprise';
-import type { LoggerPackageConfig, XLoggerConfig } from 'x-logger-enterprise';
+import { createXLogger } from 'nx-logging';
+import type { LoggerPackageConfig, XLoggerConfig } from 'nx-logging';
 
 // MongoDB Integration Example
-// This example shows how to configure x-logger-enterprise with MongoDB using Chronos-DB v2.0
+// This example shows how to configure nx-logging with MongoDB using Chronos-DB v2.0
 
 const pkg: LoggerPackageConfig = {
   packageName: 'my-app',
