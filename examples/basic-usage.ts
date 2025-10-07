@@ -1,4 +1,4 @@
-import { createXLogger } from 'x-logger';
+import { createXLogger } from '@nx-morpheus/x-logger';
 
 // Example Chronos configuration for centralized logs database
 const chronosConfig = {

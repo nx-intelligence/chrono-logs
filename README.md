@@ -1,4 +1,4 @@
-# @x-developer/x-logger
+# @nx-morpheus/x-logger
 
 A thin wrapper around `logs-gateway` that adds Chronos-DB v2.0 persistence into a dedicated logs collection, with strict recursion safety and tenant/correlation propagation.
 
@@ -16,13 +16,13 @@ A thin wrapper around `logs-gateway` that adds Chronos-DB v2.0 persistence into 
 ## Installation
 
 ```bash
-npm install @x-developer/x-logger chronos-db logs-gateway
+npm install @nx-morpheus/x-logger chronos-db logs-gateway
 ```
 
 ## Quick Start
 
 ```typescript
-import { createXLogger } from '@x-developer/x-logger';
+import { createXLogger } from '@nx-morpheus/x-logger';
 
 const chronosConfig = {
   dbConnections: {
