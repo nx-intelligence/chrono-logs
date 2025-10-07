@@ -1,8 +1,15 @@
 {
   "name": "x-logger-enterprise",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A thin wrapper around logs-gateway that adds Chronos-DB v2.0 persistence with recursion safety and tenant/correlation propagation",
-  "keywords": ["logging", "chronos", "logs-gateway", "persistence", "multi-tenant", "correlation"],
+  "keywords": [
+    "logging",
+    "chronos",
+    "logs-gateway",
+    "persistence",
+    "multi-tenant",
+    "correlation"
+  ],
   "author": "nx-morpheus",
   "type": "module",
   "main": "dist/index.js",
