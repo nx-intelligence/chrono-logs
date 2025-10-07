@@ -1,5 +1,5 @@
 {
-  "name": "nx-logging",
+  "name": "chrono-logs",
   "version": "0.1.1",
   "description": "A thin wrapper around logs-gateway that adds Chronos-DB v2.0 persistence with recursion safety and tenant/correlation propagation",
   "keywords": [

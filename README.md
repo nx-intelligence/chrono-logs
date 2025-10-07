@@ -1,8 +1,8 @@
-# nx-logging
+# chrono-logs
 
 A thin wrapper around `logs-gateway` that adds Chronos-DB v2.0 persistence into a dedicated logs collection, with strict recursion safety and tenant/correlation propagation.
 
-## What nx-logging adds
+## What chrono-logs adds
 
 - **Chronos persistence**: Writes each log to Chronos-DB v2.0 under `databaseType=logs` with configurable collections
 - **AI Activity logging**: Specialized logging for AI requests/responses with job binding and status tracking
@@ -19,13 +19,13 @@ A thin wrapper around `logs-gateway` that adds Chronos-DB v2.0 persistence into 
 ## Installation
 
 ```bash
-npm install nx-logging chronos-db logs-gateway
+npm install chrono-logs chronos-db logs-gateway
 ```
 
 ## Quick Start
 
 ```typescript
-import { createXLogger } from 'nx-logging';
+import { createXLogger } from 'chrono-logs';
 
 const chronosConfig = {
   dbConnections: {
@@ -159,7 +159,7 @@ xlogger.logAudit({
 
 ## MongoDB Integration
 
-nx-logging integrates seamlessly with MongoDB through Chronos-DB v2.0. Here's how to configure it:
+chrono-logs integrates seamlessly with MongoDB through Chronos-DB v2.0. Here's how to configure it:
 
 ### Environment Variables
 
@@ -175,7 +175,7 @@ export SPACE_END="your-space-endpoint"
 ### Configuration Example
 
 ```typescript
-import { createXLogger } from 'nx-logging';
+import { createXLogger } from 'chrono-logs';
 
 const config: XLoggerConfig = {
   gateway: {
@@ -695,11 +695,11 @@ const chronosConfig = {
 
 ### 2. Install and Initialize
 ```bash
-npm install nx-logging chronos-db logs-gateway
+npm install chrono-logs chronos-db logs-gateway
 ```
 
 ```typescript
-import { createXLogger } from 'nx-logging';
+import { createXLogger } from 'chrono-logs';
 
 const xlogger = createXLogger(
   { packageName: 'your-app', envPrefix: 'YOUR_APP' },
