@@ -505,6 +505,160 @@ const xlogger = createXLogger(pkg, {
 await xlogger.flush({ timeoutMs: 3000 });
 ```
 
+## Recommended Chronos Collection Maps
+
+For optimal performance and compliance, configure these indexes in your Chronos collectionMaps:
+
+```typescript
+const chronosConfig = {
+  // ... your config
+  collectionMaps: {
+    logs: {
+      indexedProps: ['tenantId', 'level', 'service', 'env', 'correlationId', 'ts'],
+      validation: { requiredIndexed: ['level', 'service', 'ts'] }
+    },
+    activities: {
+      indexedProps: ['jobId', 'correlationId', 'status', 'startTs', 'endTs', 'tenantId'],
+      validation: { requiredIndexed: ['jobId', 'status'] }
+    },
+    errors: {
+      indexedProps: ['jobId', 'responseStatus', 'reason', 'endTs', 'tenantId'],
+      validation: { requiredIndexed: ['jobId', 'reason'] }
+    },
+    auditlogs: {
+      indexedProps: ['appId', 'userId', 'action', 'occurredAt', 'tenantId', 'service', 'env', 'correlationId'],
+      validation: { requiredIndexed: ['appId', 'userId', 'occurredAt'] }
+    },
+    users: {
+      indexedProps: ['key.appId', 'key.userId', 'tenantId', 'lastSeen', 'firstSeen'],
+      validation: { requiredIndexed: ['key.appId', 'key.userId'] }
+    },
+    ips: {
+      indexedProps: ['ip', 'appId', 'tenantId', 'lastSeen'],
+      validation: { requiredIndexed: ['ip', 'tenantId'] }
+    },
+    machines: {
+      indexedProps: ['machine', 'appId', 'tenantId', 'lastSeen'],
+      validation: { requiredIndexed: ['machine', 'tenantId'] }
+    },
+    domains: {
+      indexedProps: ['domain', 'tenantId', 'lastSeen'],
+      validation: { requiredIndexed: ['domain', 'tenantId'] }
+    },
+    activity_types: {
+      indexedProps: ['activityType', 'tenantId', 'lastSeen'],
+      validation: { requiredIndexed: ['activityType', 'tenantId'] }
+    }
+  }
+};
+```
+
+## Security and Compliance
+
+### Data Privacy
+- **No PII processing**: x-logger performs no content transformation or PII detection
+- **Application responsibility**: Teams must ensure sensitive content compliance
+- **Tenant isolation**: All reads/writes scoped by tenantId for proper isolation
+
+### Audit Trail Requirements
+- **Immutable history**: Chronos-DB versioning and logical deletes enabled
+- **Retention policies**: Set collection-specific retention (e.g., auditlogs: 365-730 days)
+- **Access controls**: Separate IAM for writers vs. BI/compliance readers
+
+### Compliance Features
+- **Correlation tracking**: Full request tracing across services
+- **Activity linking**: End-to-end visibility from user action to AI response
+- **Real-time aggregations**: Immediate analytics for security monitoring
+- **Bounded arrays**: Prevents unbounded growth in aggregate collections
+
+## Deployment Guide
+
+### 1. Chronos Configuration
+```typescript
+// Ensure databases.logs exists with S3 and Mongo connections
+const chronosConfig = {
+  dbConnections: { /* MongoDB connections */ },
+  spacesConnections: { /* S3 connections */ },
+  databases: {
+    logs: {
+      dbConnRef: 'mongo-logs',
+      spaceConnRef: 's3-logs',
+      bucket: 'chronos-logs',
+      dbName: 'chronos_logs'
+    }
+  },
+  collectionMaps: { /* indexes as shown above */ },
+  logicalDelete: { enabled: true },
+  versioning: { enabled: true },
+  transactions: { enabled: true }
+};
+```
+
+### 2. Install and Initialize
+```bash
+npm install x-logger-enterprise chronos-db logs-gateway
+```
+
+```typescript
+import { createXLogger } from 'x-logger-enterprise';
+
+const xlogger = createXLogger(
+  { packageName: 'your-app', envPrefix: 'YOUR_APP' },
+  {
+    gateway: { /* logs-gateway config */ },
+    chronos: {
+      chronosConfig,
+      collections: { /* collection names */ },
+      aggregations: { /* aggregation config */ },
+      activityLinking: { /* linking config */ },
+      tenantIdResolver: (meta) => meta?.tenantId
+    }
+  }
+);
+```
+
+### 3. Instrument Applications
+```typescript
+// Adopt shared action taxonomy
+const ACTIONS = {
+  LOGIN: 'login',
+  EXPORT: 'export',
+  DELETE: 'delete',
+  AI_GENERATE: 'ai-generate'
+} as const;
+
+// Emit audit events at user-visible operations
+xlogger.logAudit({
+  appId: 'web-app',
+  userId: user.id,
+  action: ACTIONS.EXPORT,
+  resource: 'report',
+  target: { id: report.id, type: 'report' },
+  outcome: 'success',
+  severity: 'info',
+  tags: ['export', 'reporting'],
+  data: { format: 'pdf', pages: report.pages }
+}, { tenantId: user.tenantId, correlationId: req.id });
+
+// For AI flows, include jobId or correlationId
+xlogger.logActivityRequest({
+  jobId: generateJobId(),
+  request: { prompt: userPrompt },
+  model: 'gpt-4',
+  provider: 'openai'
+}, { tenantId: user.tenantId, correlationId: req.id });
+```
+
+### 4. Rollout Strategy
+- **Phase 1**: auditlogs only (linking/aggregates disabled)
+- **Phase 2**: enable activity linking
+- **Phase 3**: enable aggregations; tune limits.maxSetSize
+
+### 5. Monitoring
+- Monitor write latency, error rate, dropped fan-outs
+- Establish runbooks for dead-letter replay and aggregate backfill
+- Set up alerting on auditlogs for unusual patterns
+
 ## Development
 
 ```bash
