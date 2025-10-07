@@ -157,6 +157,105 @@ xlogger.logAudit({
 });
 ```
 
+## MongoDB Integration
+
+x-logger-enterprise integrates seamlessly with MongoDB through Chronos-DB v2.0. Here's how to configure it:
+
+### Environment Variables
+
+Set these environment variables for MongoDB connection:
+
+```bash
+export MONGO_URI="mongodb://localhost:27017"
+export SPACE_ACCESS_KEY="your-access-key"
+export SPACE_SECRET_KEY="your-secret-key"
+export SPACE_END="your-space-endpoint"
+```
+
+### Configuration Example
+
+```typescript
+import { createXLogger } from 'x-logger-enterprise';
+
+const config: XLoggerConfig = {
+  gateway: {
+    logToConsole: true,
+    logLevel: 'info'
+  },
+  chronos: {
+    chronosConfig: {
+      databases: {
+        logs: {
+          dbConnRef: process.env.MONGO_URI!,
+          spaceConnRef: process.env.MONGO_URI!,
+          bucket: 'logs',
+          dbName: 'my_app_logs'
+        }
+      }
+    },
+    collections: {
+      logs: 'logs',
+      activities: 'ai_activities',
+      errors: 'ai_errors',
+      auditlogs: 'audit_logs',
+      users: 'user_aggregates',
+      ips: 'ip_aggregates',
+      machines: 'machine_aggregates',
+      domains: 'domain_aggregates',
+      activityTypes: 'activity_type_aggregates'
+    },
+    aggregations: {
+      enabled: true,
+      resolvers: {
+        ip: (event) => event.data?.ip || event.data?.clientIp,
+        machine: (event) => event.data?.machine || event.data?.hostname,
+        domain: (event) => event.data?.domain || event.data?.host
+      }
+    },
+    activityLinking: {
+      enabled: true,
+      strategy: 'both'
+    }
+  }
+};
+
+const logger = createXLogger({ packageName: 'my-app' }, config);
+```
+
+### MongoDB Collections
+
+The package creates and manages these MongoDB collections:
+
+- **logs**: Standard application logs
+- **ai_activities**: AI request/response lifecycle
+- **ai_errors**: AI activity errors
+- **audit_logs**: Immutable audit trails
+- **user_aggregates**: Real-time user activity summaries
+- **ip_aggregates**: IP-based activity analytics
+- **machine_aggregates**: Machine-level activity tracking
+- **domain_aggregates**: Domain-based activity analysis
+- **activity_type_aggregates**: Activity type statistics
+
+### Performance Optimization
+
+For high-throughput applications:
+
+```typescript
+const config: XLoggerConfig = {
+  chronos: {
+    maxInFlight: 1000,        // Increase concurrent writes
+    fireAndForget: true,      // Non-blocking writes
+    aggregations: {
+      enabled: true,
+      readModifyWriteCounters: true,  // Optimize aggregation updates
+      limits: {
+        maxSetSize: 5000      // Increase aggregation limits
+      }
+    }
+  }
+};
+```
+
 ## API Reference
 
 ### `createXLogger(pkg, config)`

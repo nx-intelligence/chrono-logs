@@ -80,12 +80,12 @@ describe('ChronosOutput', () => {
     const mockOps = {
       create: vi.fn().mockResolvedValue({})
     };
-    vi.spyOn(chronosOutput as any, 'ops').mockReturnValue(mockOps);
+    vi.spyOn(chronosOutput as any, 'ops').mockResolvedValue(mockOps);
 
     chronosOutput.write('info', 'test message', { source: 'application' });
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(mockOps.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -125,7 +125,7 @@ describe('ChronosOutput', () => {
     });
   });
 
-  it('should respect maxInFlight limit', () => {
+  it('should respect maxInFlight limit', async () => {
     const configWithLowLimit = {
       ...chronosConfig,
       maxInFlight: 1,
@@ -136,14 +136,26 @@ describe('ChronosOutput', () => {
     const mockOps = {
       create: vi.fn().mockResolvedValue({})
     };
-    vi.spyOn(output as any, 'ops').mockReturnValue(mockOps);
+    vi.spyOn(output as any, 'ops').mockResolvedValue(mockOps);
 
     // First write should go through
     output.write('info', 'message1');
-    expect(mockOps.create).toHaveBeenCalledTimes(1);
-
-    // Second write should be dropped due to maxInFlight limit
+    
+    // Second write should be dropped due to maxInFlight limit (before first completes)
     output.write('info', 'message2');
+    
+    // Wait for any async operations to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Only the first write should have executed
     expect(mockOps.create).toHaveBeenCalledTimes(1);
+    expect(mockOps.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'info',
+        message: 'message1'
+      }),
+      expect.any(String),
+      'log:info'
+    );
   });
 });

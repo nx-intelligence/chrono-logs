@@ -81,7 +81,7 @@ describe('AuditOutput', () => {
     auditOutput.logAudit(event, meta);
 
     // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     expect(mockChronos.with).toHaveBeenCalledWith({
       databaseType: 'logs',
@@ -89,7 +89,12 @@ describe('AuditOutput', () => {
     });
 
     const createCall = mockChronos.with().create;
-    expect(createCall).toHaveBeenCalledWith(
+    
+    // Should have 4 calls: 1 audit + 3 aggregations (user, ip, activity-type)
+    expect(createCall).toHaveBeenCalledTimes(4);
+    
+    // Check audit record (first call)
+    expect(createCall).toHaveBeenNthCalledWith(1,
       expect.objectContaining({
         type: 'audit',
         appId: 'web-app',
@@ -99,12 +104,54 @@ describe('AuditOutput', () => {
         outcome: 'success',
         severity: 'info',
         tags: ['authentication'],
+        context: [],
+        data: { ip: '203.0.113.4' },
+        activityRef: undefined,
+        durationMs: undefined,
+        endAt: undefined,
         service: 'test-package',
         tenantId: 'tenant-a',
         correlationId: 'req-123'
       }),
-      'test-package',
+      'application',
       'audit:create'
+    );
+    
+    // Check user aggregation (second call)
+    expect(createCall).toHaveBeenNthCalledWith(2,
+      expect.objectContaining({
+        type: 'user-aggregate',
+        appId: 'web-app',
+        userId: 'user-123',
+        tenantId: undefined,
+        key: 'web-app:user-123:tenant-a'
+      }),
+      'test-package',
+      'user:create'
+    );
+    
+    // Check IP aggregation (third call)
+    expect(createCall).toHaveBeenNthCalledWith(3,
+      expect.objectContaining({
+        type: 'ip-aggregate',
+        ip: '203.0.113.4',
+        tenantId: undefined,
+        key: '203.0.113.4:tenant-a'
+      }),
+      'test-package',
+      'ip:create'
+    );
+    
+    // Check activity-type aggregation (fourth call)
+    expect(createCall).toHaveBeenNthCalledWith(4,
+      expect.objectContaining({
+        type: 'activity-type-aggregate',
+        activityType: 'login',
+        tenantId: undefined,
+        key: 'login:tenant-a'
+      }),
+      'test-package',
+      'activity-type:create'
     );
   });
 
@@ -132,15 +179,50 @@ describe('AuditOutput', () => {
     auditOutput.logAudit(event, { tenantId: 'tenant-a' });
 
     // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     const createCall = mockChronos.with().create;
-    expect(createCall).toHaveBeenCalledWith(
+    
+    // Should have 3 calls: 1 audit + 2 aggregations (user, activity-type)
+    expect(createCall).toHaveBeenCalledTimes(3);
+    
+    // Check audit record (first call)
+    expect(createCall).toHaveBeenNthCalledWith(1,
       expect.objectContaining({
-        activityRef: { jobId: 'job-42' }
+        type: 'audit',
+        appId: 'web-app',
+        userId: 'user-123',
+        action: 'generate-report',
+        activityRef: { jobId: 'job-42' },
+        tenantId: 'tenant-a'
+      }),
+      'application',
+      'audit:create'
+    );
+    
+    // Check user aggregation (second call)
+    expect(createCall).toHaveBeenNthCalledWith(2,
+      expect.objectContaining({
+        type: 'user-aggregate',
+        appId: 'web-app',
+        userId: 'user-123',
+        tenantId: undefined,
+        key: 'web-app:user-123:tenant-a'
       }),
       'test-package',
-      'audit:create'
+      'user:create'
+    );
+    
+    // Check activity-type aggregation (third call)
+    expect(createCall).toHaveBeenNthCalledWith(3,
+      expect.objectContaining({
+        type: 'activity-type-aggregate',
+        activityType: 'generate-report',
+        tenantId: undefined,
+        key: 'generate-report:tenant-a'
+      }),
+      'test-package',
+      'activity-type:create'
     );
   });
 

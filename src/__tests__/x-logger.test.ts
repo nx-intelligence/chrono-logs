@@ -1,6 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createXLogger } from '../index';
-import type { LoggerPackageConfig, XLoggerConfig, XLoggerLogMeta, AiActivityRequest, AiActivityResponse } from '../types';
 
 // Mock logs-gateway
 const mockLogger = {
@@ -26,6 +24,9 @@ const mockChronos = {
 vi.mock('chronos-db', () => ({
   initChronos: vi.fn().mockReturnValue(mockChronos)
 }));
+
+import { createXLogger } from '../index';
+import type { LoggerPackageConfig, XLoggerConfig, XLoggerLogMeta, AiActivityRequest, AiActivityResponse } from '../types';
 
 describe('XLogger', () => {
   const pkg: LoggerPackageConfig = {

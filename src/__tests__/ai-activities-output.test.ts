@@ -39,11 +39,11 @@ describe('AiActivitiesOutput', () => {
     unboundResponseHandling: 'both'
   };
 
-  let aiActivities: AiActivitiesOutput;
+  let aiActivitiesOutput: AiActivitiesOutput;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    aiActivities = new AiActivitiesOutput(pkg, chronosConfig);
+    aiActivitiesOutput = new AiActivitiesOutput(pkg, chronosConfig);
   });
 
   it('should log activity request with correct structure', async () => {
@@ -62,10 +62,10 @@ describe('AiActivitiesOutput', () => {
       correlationId: 'req-123'
     };
 
-    aiActivities.logActivityRequest(request, meta);
+    aiActivitiesOutput.logActivityRequest(request, meta);
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     expect(mockChronos.with).toHaveBeenCalledWith({
       databaseType: 'logs',
@@ -104,10 +104,10 @@ describe('AiActivitiesOutput', () => {
     // Mock the cache to have the job
     (aiActivities as any).jobCache.set('job-123', { id: 'activity-123', startMs: Date.now() - 1000 });
 
-    aiActivities.logActivityResponse(response, { tenantId: 'tenant-a' });
+    aiActivitiesOutput.logActivityResponse(response, { tenantId: 'tenant-a' });
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const enrichCall = mockChronos.with().enrich;
     expect(enrichCall).toHaveBeenCalledWith(
@@ -134,10 +134,10 @@ describe('AiActivitiesOutput', () => {
     };
 
     // No job in cache, should be treated as unbound
-    aiActivities.logActivityResponse(response, { tenantId: 'tenant-b' });
+    aiActivitiesOutput.logActivityResponse(response, { tenantId: 'tenant-b' });
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Should create both activity and error records
     const createCall = mockChronos.with().create;
@@ -187,10 +187,10 @@ describe('AiActivitiesOutput', () => {
 
     (aiActivities as any).jobCache.set('job-789', { id: 'activity-789', startMs: Date.now() - 2000 });
 
-    aiActivities.logActivityResponse(response, { tenantId: 'tenant-c' });
+    aiActivitiesOutput.logActivityResponse(response, { tenantId: 'tenant-c' });
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const enrichCall = mockChronos.with().enrich;
     expect(enrichCall).toHaveBeenCalledWith(
@@ -214,7 +214,7 @@ describe('AiActivitiesOutput', () => {
       request: { prompt: 'Test' }
     };
 
-    aiActivities.logActivityRequest(request, { source: 'chronos-db' });
+    aiActivitiesOutput.logActivityRequest(request, { source: 'chronos-db' });
 
     // Should not call chronos
     expect(mockChronos.with).not.toHaveBeenCalled();
@@ -234,8 +234,8 @@ describe('AiActivitiesOutput', () => {
 
     aiActivitiesDrop.logActivityResponse(response, { tenantId: 'tenant-a' });
 
-    // Wait for async operation
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // Wait for async operation to complete
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Should not create any records when set to 'drop'
     expect(mockChronos.with().create).not.toHaveBeenCalled();
