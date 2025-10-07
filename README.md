@@ -157,6 +157,181 @@ xlogger.logAudit({
 });
 ```
 
+## Rules Engine 🔥
+
+chrono-logs includes a powerful rules engine that enriches your logs with real-time intelligence:
+
+### Why Use Rules?
+
+**Automatic Security Detection**: Detect brute force attacks, data exfiltration, and suspicious patterns automatically
+**Compliance Automation**: Flag sensitive data access, track admin actions, monitor exports
+**Real-time Intelligence**: Enrich logs with risk assessments and insights as events occur
+**Pattern Detection**: Identify trends across time periods and entity types
+**Actionable Alerts**: Generate alerts when thresholds are exceeded
+
+### Event Rules
+
+Event rules operate on individual log/audit events and enrich them with **risk** or **insight** objects:
+
+```typescript
+import { createXLogger } from 'chrono-logs';
+import type { EventRule } from 'chrono-logs';
+
+const eventRules: EventRule[] = [
+  // RISK: Detect failed login attempts
+  {
+    id: 'failed-login-risk',
+    name: 'Failed Login Attempt',
+    enabled: true,
+    conditions: [
+      { field: 'action', operator: 'equals', value: 'login' },
+      { field: 'outcome', operator: 'equals', value: 'failure' }
+    ],
+    conditionLogic: 'AND',
+    output: {
+      type: 'risk',
+      severity: 'medium', // low | medium | high | critical
+      text: 'Failed login attempt detected'
+    }
+  },
+  
+  // INSIGHT: Track data exports
+  {
+    id: 'data-export-insight',
+    name: 'Data Export Activity',
+    enabled: true,
+    conditions: [
+      { field: 'action', operator: 'in', value: ['export', 'download'] }
+    ],
+    output: {
+      type: 'insight',
+      text: 'Data export operation performed',
+      metadata: { category: 'compliance' }
+    }
+  }
+];
+
+const logger = createXLogger(
+  { packageName: 'my-app' },
+  {
+    chronos: {
+      // ... chronos config ...
+      rules: {
+        eventRules
+      }
+    }
+  }
+);
+
+// Logs are automatically enriched
+logger.logAudit({
+  appId: 'web-app',
+  userId: 'user-123',
+  action: 'login',
+  outcome: 'failure'
+});
+// → Stored with: risks: [{ severity: 'medium', text: '...', ruleId: 'failed-login-risk', ... }]
+```
+
+**Condition Operators**: `equals`, `contains`, `startsWith`, `endsWith`, `regex`, `gt`, `lt`, `gte`, `lte`, `in`, `exists`
+
+### Aggregation Rules
+
+Aggregation rules analyze events over time for specific entities (users, IPs, machines, etc.):
+
+```typescript
+import type { AggregationRule } from 'chrono-logs';
+
+const aggregationRules: AggregationRule[] = [
+  // Detect brute force: 5+ failed logins in 1 minute
+  {
+    id: 'brute-force-detection',
+    name: 'Brute Force Attack',
+    enabled: true,
+    entityProperty: 'userId', // Group by this property
+    period: 'minute', // minute | hour | day | week | month
+    threshold: 5, // Trigger when count >= 5
+    conditions: [
+      { field: 'risks', operator: 'exists' }, // Only count events with risks
+      { field: 'action', operator: 'equals', value: 'login' }
+    ],
+    output: {
+      type: 'risk',
+      severity: 'critical',
+      text: 'BRUTE FORCE: {count} failed logins for {entity} in last {period}'
+    }
+  },
+  
+  // Detect data exfiltration: 10+ exports in 1 hour
+  {
+    id: 'exfiltration-detection',
+    name: 'Data Exfiltration',
+    enabled: true,
+    entityProperty: 'userId',
+    period: 'hour',
+    threshold: 10,
+    conditions: [
+      { field: 'action', operator: 'equals', value: 'export' }
+    ],
+    output: {
+      type: 'risk',
+      severity: 'high',
+      text: 'POSSIBLE EXFILTRATION: {count} exports by {entity} in last {period}'
+    }
+  }
+];
+
+const logger = createXLogger(
+  { packageName: 'my-app' },
+  {
+    chronos: {
+      // ... chronos config ...
+      rules: {
+        eventRules, // Event rules run first
+        aggregationRules, // Aggregation rules use enriched events
+        entityPropertyMap: {
+          userId: 'users',
+          'data.ip': 'ips',
+          appId: 'users',
+          action: 'activity_types'
+        }
+      }
+    }
+  }
+);
+```
+
+**How It Works**:
+1. Event rules enrich each log/audit event with risks/insights
+2. Enriched events are persisted to MongoDB
+3. Aggregation rules query recent events for specific entities
+4. When thresholds are exceeded, alerts are created in entity collections
+5. Alerts can trigger external notifications, dashboards, etc.
+
+### Rule Execution Flow
+
+```
+Log Event → Event Rules → Enriched Event → Persist to DB
+                                ↓
+                         Aggregation Rules
+                                ↓
+                    Query Recent Events by Entity
+                                ↓
+                      Check Threshold & Conditions
+                                ↓
+                    Create Alert (if threshold exceeded)
+                                ↓
+                     Persist to Entity Collection
+```
+
+### Complete Rules Example
+
+See `demo/event-rules.ts` and `demo/aggregation-rules.ts` for comprehensive examples including:
+- Security threat detection (brute force, unauthorized access)
+- Compliance monitoring (sensitive data access, exports)
+- Performance insights (high-activity users, API patterns)
+- Operational alerts (critical errors, system anomalies)
+
 ## MongoDB Integration
 
 chrono-logs integrates seamlessly with MongoDB through Chronos-DB v2.0. Here's how to configure it:

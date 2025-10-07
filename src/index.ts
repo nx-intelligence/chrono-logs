@@ -17,7 +17,17 @@ export type {
   UnifiedLoggerTransports,
   AiActivityRequest,
   AiActivityResponse,
-  AuditEvent
+  AuditEvent,
+  // Rules Engine types
+  RiskSeverity,
+  RiskObject,
+  InsightObject,
+  EventRuleCondition,
+  EventRule,
+  AggregationPeriod,
+  AggregationRuleCondition,
+  AggregationRule,
+  RulesEngineConfig
 } from './types';
 
 class XLoggerImpl implements XLogger {

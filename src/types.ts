@@ -35,6 +35,77 @@ export interface XLoggerLogMeta extends LogMeta {
   source?: 'application' | 'chronos-db' | 'logs-gateway-internal' | string;
 }
 
+// Rules Engine Types
+export type RiskSeverity = 'low' | 'medium' | 'high' | 'critical';
+
+export interface RiskObject {
+  severity: RiskSeverity;
+  text: string;
+  ruleId: string;
+  ruleName: string;
+  triggeredAt: string;
+}
+
+export interface InsightObject {
+  text: string;
+  ruleId: string;
+  ruleName: string;
+  triggeredAt: string;
+  metadata?: Record<string, any>;
+}
+
+export interface EventRuleCondition {
+  field: string;
+  operator: 'equals' | 'contains' | 'startsWith' | 'endsWith' | 'regex' | 'gt' | 'lt' | 'gte' | 'lte' | 'in' | 'exists';
+  value?: any;
+}
+
+export interface EventRule {
+  id: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  conditions: EventRuleCondition[];
+  conditionLogic?: 'AND' | 'OR'; // default: AND
+  output: {
+    type: 'risk' | 'insight';
+    severity?: RiskSeverity; // required for risk
+    text: string;
+    metadata?: Record<string, any>;
+  };
+}
+
+export type AggregationPeriod = 'minute' | 'hour' | 'day' | 'week' | 'month';
+
+export interface AggregationRuleCondition {
+  field: string; // e.g., 'risk.severity', 'insight.text'
+  operator: 'equals' | 'contains' | 'exists' | 'gt' | 'lt' | 'gte' | 'lte';
+  value?: any;
+}
+
+export interface AggregationRule {
+  id: string;
+  name: string;
+  description?: string;
+  enabled?: boolean;
+  entityProperty: string; // e.g., 'userId', 'ip', 'appId' - must map to entity collections
+  period: AggregationPeriod;
+  threshold: number; // count threshold
+  conditions?: AggregationRuleCondition[]; // conditions to filter events (e.g., only count high-severity risks)
+  output: {
+    type: 'risk' | 'insight';
+    severity?: RiskSeverity; // required for risk
+    text: string; // can use {count}, {entity}, {period} placeholders
+    metadata?: Record<string, any>;
+  };
+}
+
+export interface RulesEngineConfig {
+  eventRules?: EventRule[];
+  aggregationRules?: AggregationRule[];
+  entityPropertyMap?: Record<string, string>; // map property names to collection names (e.g., userId -> users, ip -> ips)
+}
+
 export interface XLoggerChronosOptions {
   // Either pass a pre-initialized chronos or config to initialize one
   chronosInstance?: any; // ReturnType<typeof initChronos>
@@ -90,6 +161,9 @@ export interface XLoggerChronosOptions {
     activity?: (doc: any, meta?: XLoggerLogMeta) => any;
     log?: (doc: any, meta?: XLoggerLogMeta) => any;
   };
+
+  // Rules engine configuration
+  rules?: RulesEngineConfig;
 
   // Behavior/perf
   tenantIdResolver?: (meta?: XLoggerLogMeta) => string | undefined;

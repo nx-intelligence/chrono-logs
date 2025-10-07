@@ -1,5 +1,6 @@
 import type { LogLevel, LoggerPackageConfig, XLoggerLogMeta } from '../types';
 import type { XLoggerChronosOptions } from '../types';
+import { applyEventRules } from '../rules-engine';
 
 // Import chronos-db dynamically to avoid circular dependencies
 let initChronos: any;
@@ -60,7 +61,7 @@ export class ChronosOutput {
     const tenantId = meta?.tenantId ?? this.tenantIdResolver?.(meta);
     
     // Persist a clean document optimized for search
-    return {
+    const record = {
       ts: now,
       level,
       message,
@@ -73,6 +74,19 @@ export class ChronosOutput {
       // Flatten known keys to top-level for indexing, keep rest in meta
       meta: sanitizeMeta(meta)
     };
+
+    // Apply event rules if configured
+    if (this.cfg.rules?.eventRules && this.cfg.rules.eventRules.length > 0) {
+      const { risks, insights } = applyEventRules(record, this.cfg.rules.eventRules);
+      if (risks.length > 0) {
+        (record as any).risks = risks;
+      }
+      if (insights.length > 0) {
+        (record as any).insights = insights;
+      }
+    }
+    
+    return record;
   }
 
   private async ensureChronos() {

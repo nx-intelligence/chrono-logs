@@ -1,4 +1,5 @@
-import type { LoggerPackageConfig, XLoggerChronosOptions, XLoggerLogMeta, AuditEvent } from '../types';
+import type { LoggerPackageConfig, XLoggerChronosOptions, XLoggerLogMeta, AuditEvent, AggregationRule } from '../types';
+import { applyEventRules, eventMatchesAggRule, getEntityValue, getTimeWindow, createAggregationOutput } from '../rules-engine';
 
 // Import chronos-db dynamically to avoid circular dependencies
 let initChronos: any;
@@ -160,7 +161,7 @@ export class AuditOutput {
     if (meta?.source === 'chronos-db') return;
 
     const now = new Date().toISOString();
-    const auditRecord = {
+    const auditRecord: any = {
       type: 'audit',
       appId: event.appId,
       userId: event.userId,
@@ -178,6 +179,17 @@ export class AuditOutput {
       activityRef: event.activityRef,
       ...this.commonMeta(meta)
     };
+
+    // Apply event rules if configured
+    if (this.cfg.rules?.eventRules && this.cfg.rules.eventRules.length > 0) {
+      const { risks, insights } = applyEventRules(auditRecord, this.cfg.rules.eventRules);
+      if (risks.length > 0) {
+        auditRecord.risks = risks;
+      }
+      if (insights.length > 0) {
+        auditRecord.insights = insights;
+      }
+    }
 
     const exec = async () => {
       try {
@@ -198,6 +210,11 @@ export class AuditOutput {
         // Handle aggregations
         if (this.aggregations.enabled) {
           await this.handleAggregations(event, meta, finalRecord);
+        }
+
+        // Handle aggregation rules (time-based entity analysis)
+        if (this.cfg.rules?.aggregationRules && this.cfg.rules.aggregationRules.length > 0) {
+          await this.handleAggregationRules(finalRecord);
         }
       } catch (err) {
         try {
@@ -600,6 +617,108 @@ export class AuditOutput {
       }
     } catch (err) {
       // Ignore individual aggregate errors
+    }
+  }
+
+  private async handleAggregationRules(enrichedEvent: any) {
+    if (!this.cfg.rules?.aggregationRules) return;
+
+    const entityPropertyMap = this.cfg.rules.entityPropertyMap || {
+      userId: 'users',
+      appId: 'users',
+      ip: 'ips',
+      machine: 'machines',
+      domain: 'domains',
+      action: 'activity_types'
+    };
+
+    for (const rule of this.cfg.rules.aggregationRules) {
+      if (!rule.enabled) continue;
+
+      // Check if this event matches the rule's conditions
+      if (!eventMatchesAggRule(enrichedEvent, rule)) continue;
+
+      // Get the entity value from the event
+      const entityValue = getEntityValue(enrichedEvent, rule.entityProperty);
+      if (!entityValue) continue;
+
+      // Get the collection name for this entity type
+      const collectionName = entityPropertyMap[rule.entityProperty];
+      if (!collectionName) continue;
+
+      try {
+        // Get time window for the aggregation period
+        const { start, end } = getTimeWindow(rule.period);
+
+        // Query events in this time period for this entity
+        const chronos = await this.ensureChronos();
+        const auditOps = this.ops(this.collections.auditlogs);
+        
+        // Build query to count matching events
+        const query: any = {
+          [rule.entityProperty]: entityValue,
+          occurredAt: { $gte: start.toISOString(), $lte: end.toISOString() }
+        };
+
+        // Add condition filters if specified
+        if (rule.conditions && rule.conditions.length > 0) {
+          for (const condition of rule.conditions) {
+            // For nested fields like 'risks.severity'
+            const condValue = condition.value;
+            if (condition.operator === 'equals') {
+              query[condition.field] = condValue;
+            } else if (condition.operator === 'exists') {
+              query[condition.field] = { $exists: true };
+            } else if (condition.operator === 'gt') {
+              query[condition.field] = { $gt: condValue };
+            } else if (condition.operator === 'gte') {
+              query[condition.field] = { $gte: condValue };
+            } else if (condition.operator === 'lt') {
+              query[condition.field] = { $lt: condValue };
+            } else if (condition.operator === 'lte') {
+              query[condition.field] = { $lte: condValue };
+            } else if (condition.operator === 'contains') {
+              query[condition.field] = { $regex: condValue, $options: 'i' };
+            }
+          }
+        }
+
+        // Count events matching the criteria
+        const matchingEvents = await auditOps.listByMeta(query) || [];
+        const count = Array.isArray(matchingEvents) ? matchingEvents.length : 0;
+
+        // Check if threshold is exceeded
+        if (count >= rule.threshold) {
+          // Create aggregation output (risk or insight)
+          const aggOutput = createAggregationOutput(rule, count, entityValue);
+
+          // Store this aggregation alert/insight
+          const aggRecord = {
+            type: 'aggregation-alert',
+            ruleId: rule.id,
+            ruleName: rule.name,
+            entityProperty: rule.entityProperty,
+            entityValue,
+            period: rule.period,
+            count,
+            threshold: rule.threshold,
+            output: aggOutput,
+            triggeredAt: new Date().toISOString(),
+            timeWindow: {
+              start: start.toISOString(),
+              end: end.toISOString()
+            },
+            service: this.pkg.packageName,
+            env: process.env.NODE_ENV ?? 'production'
+          };
+
+          // Persist to the entity's collection or a dedicated alerts collection
+          const collectionOps = this.ops(collectionName);
+          await collectionOps.create(aggRecord, this.pkg.packageName, `aggregation-rule:${rule.output.type}`);
+        }
+      } catch (err) {
+        // Ignore individual aggregation rule errors
+      }
     }
   }
 
