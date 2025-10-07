@@ -1,8 +1,9 @@
 import { createLogger, LogsGateway } from 'logs-gateway';
 import type { LogLevel, LoggingConfig, LoggerPackageConfig } from 'logs-gateway';
-import type { XLoggerConfig, XLogger, XLoggerLogMeta, AiActivityRequest, AiActivityResponse } from './types';
+import type { XLoggerConfig, XLogger, XLoggerLogMeta, AiActivityRequest, AiActivityResponse, AuditEvent } from './types';
 import { ChronosOutput } from './outputs/chronos-output';
 import { AiActivitiesOutput } from './outputs/ai-activities-output';
+import { AuditOutput } from './outputs/audit-output';
 
 export type { 
   XLoggerConfig, 
@@ -15,7 +16,8 @@ export type {
   UnifiedLoggerConfig,
   UnifiedLoggerTransports,
   AiActivityRequest,
-  AiActivityResponse
+  AiActivityResponse,
+  AuditEvent
 } from './types';
 
 class XLoggerImpl implements XLogger {
@@ -23,7 +25,8 @@ class XLoggerImpl implements XLogger {
     private readonly base: LogsGateway,
     private readonly cfg: XLoggerConfig,
     private readonly chronos?: ChronosOutput,
-    private readonly aiActivities?: AiActivitiesOutput
+    private readonly aiActivities?: AiActivitiesOutput,
+    private readonly audit?: AuditOutput
   ) {}
 
   getConfig() {
@@ -67,10 +70,16 @@ class XLoggerImpl implements XLogger {
     this.aiActivities?.logActivityResponse(res, meta);
   }
 
+  // Audit logging method
+  logAudit(event: AuditEvent, meta?: XLoggerLogMeta) {
+    this.audit?.logAudit(event, meta);
+  }
+
   async flush(opts?: { timeoutMs?: number }) {
     await Promise.all([
       this.chronos?.flush(opts?.timeoutMs),
-      this.aiActivities?.flush(opts?.timeoutMs)
+      this.aiActivities?.flush(opts?.timeoutMs),
+      this.audit?.flush(opts?.timeoutMs)
     ]);
   }
 }
@@ -85,8 +94,9 @@ export function createXLogger(
   // Callers can still override via meta._routing
   const chronos = new ChronosOutput(pkg, config.chronos);
   const aiActivities = new AiActivitiesOutput(pkg, config.chronos);
+  const audit = new AuditOutput(pkg, config.chronos);
 
-  return new XLoggerImpl(base, config, chronos, aiActivities);
+  return new XLoggerImpl(base, config, chronos, aiActivities, audit);
 }
 
 // Re-export logs-gateway utilities for convenience
