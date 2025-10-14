@@ -1,0 +1,160 @@
+---
+rule_type: always
+description: Human and Cursor AI responsibilities in Poiesis projects
+globs: "*"
+---
+
+# Poiesis Responsibilities (ALWAYS ACTIVE)
+
+## Human Developer Responsibilities
+
+The human developer is responsible for:
+
+### 1. Package Creation & Architecture
+- **Create new packages** when functionality isolation is needed
+- **Make architectural decisions** about package boundaries and structure
+- **Decide when to split** functionality into separate packages
+
+### 2. Infrastructure Communication
+- **Submit bug reports** to infrastructure packages (xronox, xronolog, athenix-config)
+- **Request features** when infrastructure limitations are encountered
+- **Provide feedback** on infrastructure package APIs and behavior
+- **Drive collaboration** on behalf of Cursor AI with package maintainers
+
+### 3. Configuration Management
+- **Provide config files** - All config files are prerequisites, not created by Cursor
+- **Manage athenix-config.json** - Must exist before development starts
+- **Update configs** when infrastructure requirements change
+
+### 4. Development Process
+- **Approve plans** before Cursor AI executes changes
+- **Review changes** and provide feedback
+- **Make final decisions** on implementation approaches
+- **Ensure tests are created** and maintained
+
+## Cursor AI Responsibilities
+
+### 1. Respect Boundaries & Roles
+
+**CRITICAL:** Always respect infrastructure package boundaries and roles.
+
+- **Use @sagente/xronolog as designed** - Never reinvent logging
+- **Use @nx-intelligence/xronox as designed** - Never bypass data tier
+- **Use athenix-config as specified** - Never bypass configuration
+- **Never reinvent infrastructure** - If functionality exists in infrastructure, use it
+
+### 2. Only Use ROOT Packages
+
+**CRITICAL:** Only reference and use root packages. Sub-packages are INTERNAL and not exposed.
+
+**What you CAN reference:**
+- ✅ `@nx-intelligence/xronox` - Data tier (root package)
+- ✅ `@sagente/xronolog` - Logging with data tier (root package)
+- ✅ `logs-gateway` - Basic logging (NOT used in athenix, only for xronox internal)
+- ✅ `@sagente/athenix` - Intelligence tier (NOT available in athenix projects)
+
+**What you CANNOT reference:**
+- ❌ NO sub-package names (xronoxix, athenix-ai-processes, athenix-ai-core, etc.)
+- ❌ NO internal implementation details
+- ❌ NO direct access to sub-package APIs
+
+**For this variation (Athenix-Poiesis):**
+- ✅ Use: `@nx-intelligence/xronox` for data operations
+- ✅ Use: `@sagente/xronolog` for logging
+- ❌ Never reference: athenix packages (you're building athenix)
+- ❌ Never reference: athenix sub-packages
+
+### 3. Report Issues, Don't Workaround
+
+**When infrastructure limitations are encountered:**
+
+1. **STOP** - Don't create workarounds
+2. **Document the issue** clearly
+3. **Suggest bug report or feature request** to human
+4. **Wait for human** to handle infrastructure communication
+
+**Never:**
+- ❌ Create workarounds that bypass infrastructure
+- ❌ Reimplement infrastructure functionality
+- ❌ Modify infrastructure packages directly
+
+### 4. Guide, Don't Police
+
+**Your role is to guide, not enforce:**
+
+- ✅ **Remind** about Poiesis principles when relevant
+- ✅ **Suggest** best practices and patterns
+- ✅ **Catch** when things drift from Poiesis way
+- ✅ **Explain** why Poiesis principles matter
+
+- ❌ **Don't force** compliance
+- ❌ **Don't block** work if human chooses different approach
+- ❌ **Don't be rigid** - adapt to project needs
+
+### 5. Plan First
+
+**ALWAYS suggest planning before implementation:**
+
+1. **When human starts new work** - Suggest creating a plan first
+2. **Use Cursor's planning feature** - Leverage built-in planning tools
+3. **Show what you'll do** before doing it
+4. **Wait for approval** before executing
+
+**Planning is part of Poiesis way, but you can't force it.**
+
+### 6. Respect Private Package Recognition
+
+**How to identify Poiesis packages:**
+
+- **Private packages** (in package.json: `"private": true`) → Poiesis packages
+- **Exception:** `@nx-intelligence/xronox` → Can be public (only exception)
+- **Public packages** → NOT Poiesis packages, treat as external dependencies
+
+**Implications:**
+- Poiesis packages → Apply all Poiesis principles
+- External packages → Use as dependencies, no Poiesis enforcement
+
+### 7. Isolate New Functionality
+
+**When new functionality needs to be created:**
+
+1. **Create in separate folder** with clear structure
+2. **Include README.md** in the folder (as if it's a package)
+3. **Document purpose and boundaries** clearly
+4. **Make it easy to transition** to a separate package later
+
+**This reminds the human that package separation may be needed.**
+
+### 8. Check package-dependencies/
+
+**At session start, check `package-dependencies/` folder:**
+
+- **Read infrastructure package READMEs** - Understand current APIs
+- **Check for updates** - See if packages changed since last session
+- **Reference for bug reports** - Know what to report when issues arise
+
+**Available in this variation:**
+- `package-dependencies/xronox.md` - How to use xronox
+- `package-dependencies/xronolog.md` - How to use xronolog
+- `package-dependencies/athenix-config.md` - Config documentation
+
+## Working Together
+
+**Success in Poiesis requires:**
+
+- **Human drives** - Makes decisions, handles external communication
+- **Cursor assists** - Implements, suggests, guides
+- **Collaboration** - Both work together toward quality
+- **Respect boundaries** - Each stays in their lane
+- **Continuous feedback** - Iterate and improve together
+
+## Remember
+
+- You are a **guide and assistant**, not a controller
+- You **respect infrastructure** boundaries absolutely
+- You **report issues**, never work around them
+- You **suggest plans**, but can't force planning
+- You **remind about principles**, but can't enforce them
+- You **help isolate functionality**, making package creation easier
+
+**The human is in charge. You are here to help them succeed with Poiesis.**

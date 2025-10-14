@@ -1,0 +1,404 @@
+---
+rule_type: always
+description: Safety and security guardrails for Cursor actions
+---
+
+# Poiesis Safety (ALWAYS ACTIVE)
+
+## Command Execution Safety
+
+### NEVER Auto-Execute
+
+**DO NOT run commands automatically:**
+- ❌ Do not enable auto-run
+- ❌ Do not execute without approval
+- ❌ Do not run destructive commands silently
+
+### ALWAYS Show First
+
+**For ANY command:**
+
+```markdown
+## Command to Execute
+
+```bash
+[exact command]
+```
+
+**Purpose:** [why we need to run this]
+**Risk:** [none / low / medium / high]
+**Effect:** [what will happen]
+
+**Proceed with execution? (yes/no)**
+```
+
+**Wait for explicit approval before running.**
+
+### Destructive Commands
+
+**These require EXTRA confirmation:**
+
+```bash
+# Deletions
+rm -rf [anything]
+git clean -fd
+npm run clean
+
+# Database operations
+DROP TABLE [anything]
+DELETE FROM [anything]
+TRUNCATE [anything]
+
+# System changes
+sudo [anything]
+chmod 777 [anything]
+```
+
+**Template:**
+```markdown
+## ⚠️ DESTRUCTIVE COMMAND
+
+```bash
+[command]
+```
+
+**WARNING:** This will [specific consequence]
+**Affected:** [what will be deleted/changed]
+**Reversible:** [yes/no]
+**Backup exists:** [yes/no]
+
+**Are you SURE you want to proceed? Type "YES" to confirm.**
+```
+
+## File Safety
+
+### Protected Files
+
+**NEVER edit these without explicit approval:**
+
+```
+# Dotfiles
+.env
+.env.*
+.gitignore
+.git/config
+
+# Security
+.ssh/
+.aws/
+.credentials
+keys/
+secrets/
+
+# System
+/etc/
+~/.bashrc
+~/.zshrc
+```
+
+**If edit needed:**
+```markdown
+## Protected File Edit Request
+
+**File:** [filename]
+**Why:** [reason for edit]
+**Changes:** [what will change]
+**Risk:** [security / config / access]
+
+**Approve edit? (yes/no)**
+```
+
+### Workspace Boundaries
+
+**ONLY edit files within workspace:**
+- ✅ Files in project directory
+- ✅ Files user explicitly added
+- ❌ System files
+- ❌ Home directory files
+- ❌ Files outside workspace
+
+**Check before any file operation:**
+```typescript
+// Verify file is in workspace
+const isInWorkspace = filePath.startsWith(workspaceRoot);
+if (!isInWorkspace) {
+  throw new Error('Cannot edit files outside workspace');
+}
+```
+
+## Environment Variable Safety
+
+### NEVER
+
+- ❌ Commit secrets to git
+- ❌ Log sensitive variables
+- ❌ Share credentials in code
+- ❌ Include keys in documentation
+- ❌ Hardcode passwords
+
+### ALWAYS
+
+- ✅ Use environment variables
+- ✅ Keep .env in .gitignore
+- ✅ Document what vars are needed (not their values)
+- ✅ Use test/sandbox mode for paid services
+- ✅ Rotate credentials regularly
+
+### When Handling Secrets
+
+```markdown
+## Secret Variable Needed
+
+**Variable:** [name]
+**Purpose:** [what it's for]
+**Type:** [API key / credential / token]
+**Service:** [which service]
+
+**Documentation:**
+Add to @docs/environment-requirements.md:
+- Variable name
+- Purpose
+- How to obtain
+- Where to set
+
+**DO NOT include actual value in any file.**
+```
+
+## Git Safety
+
+### Protected Operations
+
+**These need approval:**
+
+```bash
+# Branch operations
+git push --force
+git push -f
+git rebase
+
+# History changes
+git reset --hard
+git clean -fd
+
+# Remote operations
+git push origin --delete [branch]
+```
+
+**Always show:**
+```markdown
+## Git Operation
+
+**Command:** `[command]`
+**Current branch:** [branch]
+**Will affect:** [what]
+**Reversible:** [yes/no]
+
+**Proceed? (yes/no)**
+```
+
+### Commit Message Standards
+
+**Always include:**
+- What changed
+- Why it changed
+- Relevant ticket/issue number
+
+```
+feat(component): Add CacheManager sub-component
+
+- Implements cache invalidation function
+- Adds real test with I/O evidence
+- Updates test plan to mark complete
+
+Relates to: #123
+```
+
+## Network Safety
+
+### External Requests
+
+**Before making ANY external request:**
+
+```markdown
+## External Request
+
+**URL:** [url]
+**Method:** [GET/POST/etc]
+**Purpose:** [why we need this]
+**Data sent:** [what data]
+**Credentials:** [none / API key / token]
+
+**Approve request? (yes/no)**
+```
+
+### Service Connections
+
+**Document all external services:**
+- What service
+- Why needed
+- What data sent
+- What data received
+- Credentials required
+
+## Testing Safety
+
+### Test Environments
+
+**Use appropriate environments:**
+
+```markdown
+## Test Environment
+
+**Service:** [name]
+**Mode:** 
+- [ ] Production (requires extra approval)
+- [ ] Staging / Test
+- [ ] Sandbox / Development
+- [ ] Local mock
+
+**Why this mode:** [justification]
+```
+
+### Paid Services
+
+**Always use test mode:**
+
+```
+Stripe: sk_test_... (not sk_live_...)
+PayPal: sandbox.paypal.com
+AWS: dedicated test account
+```
+
+**If production needed:**
+```markdown
+## ⚠️ PRODUCTION SERVICE REQUEST
+
+**Service:** [name]
+**Operation:** [what will happen]
+**Cost:** [estimated cost]
+**Risk:** [what could go wrong]
+**Justification:** [why production necessary]
+
+**This is unusual. Confirm? (yes/no)**
+```
+
+## Data Safety
+
+### Personal Data
+
+**Handle carefully:**
+- ✅ Anonymize in logs
+- ✅ Redact in documentation
+- ✅ Minimal data in examples
+- ❌ Never commit real user data
+- ❌ Never log sensitive information
+
+### Test Data
+
+**Create synthetic data:**
+
+```typescript
+// ✅ Good - synthetic
+const testUser = {
+  email: 'test@example.com',
+  name: 'Test User'
+};
+
+// ❌ Bad - real data
+const testUser = {
+  email: 'john.smith@company.com', // Real person!
+  name: 'John Smith'
+};
+```
+
+## Error Handling Safety
+
+### Never Expose
+
+**In error messages, never reveal:**
+- Internal paths
+- Database structure
+- API keys
+- System details
+- Stack traces (in production)
+
+**Safe error format:**
+
+```typescript
+// ✅ Safe for user
+{ error: 'Invalid input', code: 'VALIDATION_ERROR' }
+
+// ❌ Unsafe - reveals internals
+{ 
+  error: 'Query failed: SELECT * FROM users WHERE secret_key=...',
+  path: '/home/user/app/src/db/connection.ts:45'
+}
+```
+
+## Approval Workflow
+
+### Plan → Approve → Act
+
+**ALWAYS:**
+1. Show what you'll do (Plan)
+2. Wait for approval
+3. Execute only after "yes" (Act)
+
+**NEVER:**
+1. Execute then ask
+2. Assume approval
+3. Batch execute without showing each step
+
+### Approval Template
+
+```markdown
+## Action Required
+
+**Operation:** [what you'll do]
+**Files affected:** [list]
+**Commands to run:** [list]
+**Risk level:** [none/low/medium/high]
+
+**Summary:** [one sentence]
+
+**Approve? Reply "yes" to proceed, or "no" to cancel.**
+```
+
+## Emergency Stop
+
+**If you realize mid-operation that something is wrong:**
+
+```markdown
+## ⚠️ OPERATION STOPPED
+
+**What was happening:** [operation]
+**Why stopped:** [reason]
+**State:** [what's complete, what's not]
+**Risk:** [what might be affected]
+
+**Recommendation:** [what human should do]
+
+**Do NOT proceed until issue resolved.**
+```
+
+## Security Checklist
+
+**Before ANY operation:**
+
+- [ ] Operation is within workspace
+- [ ] No protected files affected
+- [ ] No secrets in code/logs
+- [ ] Commands shown before execution
+- [ ] Destructive commands have confirmation
+- [ ] External requests documented
+- [ ] Test mode for paid services
+- [ ] Data is anonymized
+- [ ] Human has approved
+
+**If ANY item unchecked → STOP and get approval.**
+
+## Reference
+
+Security best practices: Project security policy (if exists)
+Safe testing: `@docs/testing-principles.md` (Test Mode section)
+Environment safety: `@docs/environment-requirements.md` (Security Notes)

@@ -1,0 +1,317 @@
+---
+rule_type: always
+description: Enforce xronox usage for athenix packages - NEVER use direct MongoDB
+globs: "*"
+---
+
+# Poiesis Athenix Data Tier (ALWAYS ACTIVE)
+
+## Core Principle
+
+**Your athenix packages must use @nx-intelligence/xronox for data operations. Don't use direct MongoDB clients.**
+
+Just as you never write console.log() directly (you use the logging tier) or AI APIs directly (you use the intelligence tier), you should **never** use direct MongoDB clients in athenix packages. **Always** use the data tier.
+
+## Why xronox?
+
+- **Versioning** - Every change creates a new version
+- **Audit trails** - Complete audit trail of all operations
+- **Multi-tenancy** - Tenant-isolated data operations
+- **Time-travel queries** - Query data from any point in time
+- **Hybrid storage** - MongoDB + S3 for large content
+
+## The Rule
+
+> **If you're building athenix packages: Use `@nx-intelligence/xronox`**
+> **If you're building xronox packages: Use direct MongoDB clients**
+
+## Setup (once at startup)
+
+```typescript
+// src/data/dataTier.ts
+import { getDataTier } from '@nx-intelligence/xronox';
+
+let dataTierInstance = null;
+
+export async function getDataTierInstance() {
+  if (dataTierInstance) return dataTierInstance;
+  
+  dataTierInstance = await getDataTier();
+  
+  return dataTierInstance;
+}
+```
+
+## Usage Examples
+
+### ✅ CORRECT Usage
+
+```typescript
+import { getDataTierInstance } from './src/data/dataTier';
+
+const dataTier = await getDataTierInstance();
+
+// Create data with automatic versioning and audit trails
+const ops = dataTier.with({
+  tenantId: 'tenant-123',
+  actor: { id: 'ai-system', type: 'system' },
+  reason: 'AI operation result storage'
+});
+
+const result = await ops.create('ai-interactions', {
+  prompt: 'Generate content',
+  response: aiResponse,
+  model: 'gpt-4',
+  tokens: 250,
+  duration: 1500,
+  timestamp: new Date()
+});
+
+// Query with time-travel
+const historicalData = await ops.query('ai-interactions')
+  .where({ model: 'gpt-4' })
+  .atTime(new Date('2024-01-01'))
+  .execute();
+```
+
+### ❌ WRONG Usage
+
+```typescript
+// DON'T DO THIS - bypasses data tier abstraction
+import { MongoClient } from 'mongodb';
+
+// DON'T DO THIS - no versioning, audit trails, multi-tenancy
+const client = new MongoClient('mongodb://localhost:27017');
+const db = client.db('my-app');
+const collection = db.collection('ai-interactions');
+
+// DON'T DO THIS - direct MongoDB operations
+await collection.insertOne({
+  prompt: 'Generate content',
+  response: aiResponse
+});
+```
+
+## Data Operations
+
+### Create
+```typescript
+const result = await ops.create('ai-interactions', {
+  prompt: 'Generate content',
+  response: aiResponse,
+  model: 'gpt-4',
+  metadata: {
+    temperature: 0.7,
+    maxTokens: 4000
+  }
+});
+// Returns: { id, version, timestamp, tenantId }
+```
+
+### Update
+```typescript
+const result = await ops.update('ai-interactions', id, {
+  response: updatedResponse,
+  updatedAt: new Date()
+});
+// Returns: { id, newVersion, timestamp, changes }
+```
+
+### Query
+```typescript
+const results = await ops.query('ai-interactions')
+  .where({ model: 'gpt-4' })
+  .where({ 'metadata.temperature': 0.7 })
+  .limit(10)
+  .sort({ timestamp: -1 })
+  .execute();
+```
+
+### Delete
+```typescript
+await ops.delete('ai-interactions', id);
+// Creates tombstone record, data is soft-deleted
+```
+
+## AI-Specific Data Operations
+
+### Store AI Interactions
+```typescript
+const aiInteraction = await ops.create('ai-interactions', {
+  prompt: 'Generate content',
+  response: aiResponse,
+  model: 'gpt-4',
+  metadata: {
+    temperature: 0.7,
+    maxTokens: 4000,
+    provider: 'openai'
+  },
+  performance: {
+    duration: 1500,
+    tokens: 250,
+    cost: 0.003
+  },
+  context: {
+    userId: 'user-123',
+    sessionId: 'session-456'
+  }
+});
+```
+
+### Store Learning Data
+```typescript
+const learningData = await ops.create('ai-learning', {
+  domain: 'customer-support',
+  insight: 'Users prefer email over chat for complex issues',
+  confidence: 0.85,
+  evidence: ['survey-data', 'interaction-history'],
+  source: 'ai-analysis',
+  timestamp: new Date()
+});
+```
+
+### Store Memory Data
+```typescript
+const memoryData = await ops.create('ai-memory', {
+  key: 'user-123-preferences',
+  data: {
+    theme: 'dark',
+    language: 'en',
+    aiModel: 'gpt-4'
+  },
+  ttl: 86400, // 24 hours
+  lastAccessed: new Date()
+});
+```
+
+## Integration with athenix-config.json
+
+```typescript
+// Read data tier config from athenix-config.json
+import { readConfig } from './config';
+
+const config = await readConfig('./athenix-config.json');
+
+if (config.integration?.dataTier?.enabled) {
+  const dataTier = await getDataTierInstance();
+  
+  // Configure operations based on config
+  const ops = dataTier.with({
+    tenantId: config.tenantId || 'default',
+    actor: { id: 'ai-system', type: 'system' },
+    reason: 'AI operation'
+  });
+}
+```
+
+## Error Handling
+
+```typescript
+try {
+  const result = await ops.create('ai-interactions', data);
+  
+  logger.info('AI interaction stored', {
+    operation: 'create',
+    collection: 'ai-interactions',
+    id: result.id,
+    version: result.version
+  });
+  
+} catch (error) {
+  logger.error('AI interaction storage failed', {
+    operation: 'create',
+    collection: 'ai-interactions',
+    error: error.message,
+    data: data
+  });
+  
+  throw error;
+}
+```
+
+## Performance Considerations
+
+```typescript
+// Batch operations for better performance
+const operations = aiResults.map(result => ({
+  operation: 'create',
+  collection: 'ai-interactions',
+  data: result
+}));
+
+const results = await ops.batch(operations);
+```
+
+## Testing
+
+```typescript
+import { getDataTierInstance } from './src/data/dataTier';
+
+describe('Data Tier', () => {
+  it('should store AI interaction with versioning', async () => {
+    const dataTier = await getDataTierInstance();
+    const ops = dataTier.with({
+      tenantId: 'test-tenant',
+      actor: { id: 'test-user', type: 'user' },
+      reason: 'test operation'
+    });
+    
+    const result = await ops.create('ai-interactions', {
+      prompt: 'Test prompt',
+      response: 'Test response',
+      model: 'gpt-4'
+    });
+    
+    expect(result.id).toBeDefined();
+    expect(result.version).toBeDefined();
+    expect(result.timestamp).toBeDefined();
+  });
+});
+```
+
+## Migration from Direct MongoDB
+
+### Before (Direct MongoDB)
+```typescript
+import { MongoClient } from 'mongodb';
+
+const client = new MongoClient('mongodb://localhost:27017');
+const db = client.db('my-app');
+const collection = db.collection('ai-interactions');
+
+await collection.insertOne({
+  prompt: 'Generate content',
+  response: aiResponse,
+  timestamp: new Date()
+});
+```
+
+### After (xronox)
+```typescript
+import { getDataTierInstance } from './src/data/dataTier';
+
+const dataTier = await getDataTierInstance();
+const ops = dataTier.with({
+  tenantId: 'tenant-123',
+  actor: { id: 'ai-system', type: 'system' },
+  reason: 'AI operation result storage'
+});
+
+await ops.create('ai-interactions', {
+  prompt: 'Generate content',
+  response: aiResponse,
+  timestamp: new Date()
+});
+```
+
+## Complete Documentation
+
+For complete documentation, see `@docs/xronox.md`.
+
+## Remember
+
+- **athenix packages** → Use `@nx-intelligence/xronox`
+- **xronox packages** → Use direct MongoDB clients
+- **External applications** → Use `@nx-intelligence/xronox`
+- **Never bypass** → Don't use direct MongoDB in athenix packages
+- **Versioning & Audit** → xronox provides automatic versioning and audit trails

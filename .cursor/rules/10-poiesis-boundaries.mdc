@@ -1,0 +1,200 @@
+---
+rule_type: auto
+description: Enforce component boundaries and expertise separation
+globs:
+  - "components/**"
+  - "src/**"
+  - "lib/**"
+---
+
+# Poiesis Boundaries (AUTO-ATTACH)
+
+## When Editing Code Files
+
+**Check for boundary violations:**
+
+### Data Layer Violations
+
+❌ **NEVER:**
+- Data component making business decisions
+- Data component sending emails/notifications
+- Data component doing authentication
+- Data component with business validation logic
+
+✅ **CORRECT:**
+- Data component handles storage/retrieval only
+- Business logic calls Data component interface
+- Clear separation of concerns
+
+### Business Logic Violations
+
+❌ **NEVER:**
+- Business logic directly querying database
+- Business logic calling external APIs directly
+- Business logic mixing with API layer
+- Business logic doing data formatting
+
+✅ **CORRECT:**
+- Business logic calls Data component for storage
+- Business logic calls Integration component for APIs
+- Business logic focuses on domain rules only
+
+### Authentication vs Authorization
+
+❌ **NEVER:**
+- Mixing AuthN (who are you) with AuthZ (what can you do)
+- Login function also checking permissions
+- Token validation also checking roles
+
+✅ **CORRECT:**
+- Auth component: identity verification
+- Permission component: authorization checks
+- Clear separation between the two
+
+### Collection vs Reporting
+
+❌ **NEVER:**
+- Sub-component that both collects AND reports
+- EventTracker that also generates dashboards
+- Data collector that also does analytics
+
+✅ **CORRECT:**
+- EventCollector sub-component (collects only)
+- ReportGenerator sub-component (generates only)
+- Clear single function per sub-component
+
+## Naming Enforcement
+
+**Component naming:**
+- Must reflect expertise: `DataComponent`, `AuthComponent`, `AnalyticsComponent`
+- NOT feature: ❌ `UserComponent`, ❌ `ProfileComponent`
+- NOT vague: ❌ `ManagerComponent`, ❌ `HandlerComponent`
+
+**Sub-component naming:**
+- Must reflect function: `CacheInvalidator`, `QueryBuilder`, `TokenGenerator`
+- NOT vague: ❌ `DataHandler`, ❌ `Processor`, ❌ `Manager`
+
+## Boundary Checking Against Context
+
+**Before proposing changes, verify against context.md:**
+
+1. **Check "In Scope" section:**
+   - Does this change fit within stated responsibilities?
+   - Is this something consumers expect from us?
+
+2. **Check "Out of Scope" section:**
+   - Are we being asked to do something explicitly excluded?
+   - Should this live in consumer code instead?
+
+3. **Check "What Consumers Need" section:**
+   - Does this serve a real consumer need?
+   - Are we solving the right problem?
+
+**If change violates context:**
+```markdown
+## Context Violation Detected
+
+**Requested:** [What was asked for]
+
+**Context says:**
+- Package purpose: [from context.md]
+- This is out of scope because: [reason]
+
+**Should be:**
+- Implemented by: [consumer/different package]
+- Reason: [explanation]
+
+**Alternative:**
+[Suggest where this should actually live]
+```
+
+## When You Detect Violation
+
+**In Plan mode:**
+
+```markdown
+## Boundary Violation Detected
+
+**File:** [path]
+**Lines:** [lines]
+
+**Issue:** 
+[Component] is doing [other expertise work]
+
+**Evidence:**
+```typescript
+[paste code showing violation]
+```
+
+**Should be:**
+- [Component] focuses on [its expertise]
+- Extract [other work] to [appropriate component]
+
+**Proposed refactor:**
+1. Create/use [Component] for [expertise]
+2. Move [functionality] there
+3. Have [original] call [new component] interface
+
+**Why this matters:**
+- Maintains clear boundaries
+- Each component has single expertise
+- Better testability and maintainability
+```
+
+## Composition Patterns (Correct)
+
+**Sequential:**
+```typescript
+// Data → Business → API
+const data = await DataComponent.fetch(id);
+const processed = await BusinessLogic.process(data);
+const response = await APIComponent.send(processed);
+```
+
+**Event-Driven:**
+```typescript
+// Data emits, others listen
+DataComponent.on('user.created', (user) => {
+  AnalyticsComponent.track('signup', user);
+  CommunicationComponent.sendWelcome(user);
+});
+```
+
+**Parallel:**
+```typescript
+// Multiple components independently
+const [user, metrics, notifications] = await Promise.all([
+  DataComponent.getUser(id),
+  AnalyticsComponent.getMetrics(id),
+  NotificationComponent.getUnread(id)
+]);
+```
+
+## Auto-Checks During Editing
+
+**If you're editing a component file:**
+
+1. **Check README:**
+   - Does file content match stated expertise?
+   - Is expertise consistent?
+
+2. **Check dependencies:**
+   - Does component only depend on lower layers?
+   - No circular dependencies?
+
+3. **Check naming:**
+   - Component name reflects expertise?
+   - Sub-component name reflects function?
+
+4. **Check boundaries:**
+   - No mixing of expertises?
+   - No boundary violations?
+
+**If issues found:**
+- Note in `@docs/qa.md` (propose in Plan mode)
+- Suggest fix
+- Explain impact
+
+## Reference
+
+Full boundary rules: `@docs/poiesis.md` section on "Separation of Concerns"

@@ -1,0 +1,33 @@
+{
+  "comment": "Configuration template for Reality/Topology Tier (@sagente/xnosix)",
+  "comment2": "Copy to project root as xnosix-config.json and fill in values",
+  "comment3": "This tier captures topology and context of things in the grand scheme",
+  
+  "<to-do: main-config-key>": {
+    "<to-do: setting1>": "ENV::ENV_VARIABLE_NAME",
+    "<to-do: setting2>": "value"
+  },
+  
+  "connectionSettings": {
+    "comment": "If this tier needs database/external connections",
+    "dbConnection": "ENV::DATABASE_URL",
+    "apiEndpoint": "ENV::API_ENDPOINT"
+  },
+  
+  "topology": {
+    "comment": "Settings for capturing topology/reality context",
+    "captureEnabled": true,
+    "contextDepth": "full"
+  },
+  
+  "features": {
+    "comment": "Feature flags for this tier",
+    "featureA": {
+      "enabled": true
+    },
+    "featureB": {
+      "enabled": false
+    }
+  }
+}
+

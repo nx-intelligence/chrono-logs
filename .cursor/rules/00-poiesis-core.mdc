@@ -1,0 +1,167 @@
+---
+rule_type: always
+description: Core Poiesis doctrine and working mode (Athenix scope)
+globs: "*"
+---
+
+# Poiesis Core (ALWAYS ACTIVE) - Athenix Scope
+
+## Core Doctrine
+
+**Components = Expertise** | **Sub-Components = Function** | **Systems = Composition**
+
+- Component (that always packed as a NPM package) has only one role, and it's an expert at that
+- And like any expert focus only on it's role
+- Sub-component does ONE job (caching, querying, validating, etc.)
+- **Never** mix different expertises in one component
+- **Never** give sub-component multiple functions
+
+## Working Mode: Plan → Act
+
+**CRITICAL:** Use Plan → Act pattern for all changes
+
+### Plan Stage
+- **Propose changes first** - never auto-edit files
+- Show what you'll change and why
+- List files to create/modify/delete
+- Explain how it follows Poiesis principles
+- Wait for "Act" approval before making changes
+
+### Act Stage
+- Apply changes incrementally after approval
+- Report each change as you make it
+- Capture and show command outputs
+- Update documentation as you go
+
+## Session Start Routine
+
+**Every session, do this FIRST:**
+
+1. **Read Infrastructure Package Docs:**
+   - `@package-dependencies/` - Check all infrastructure package READMEs first
+   - `@package-dependencies/xronox.md` - How to use xronox (API, bug reporting)
+   - `@package-dependencies/xronolog.md` - How to use xronolog (API, bug reporting)
+   - `@package-dependencies/athenix-config.md` - Config structure/usage
+
+2. **Read Core Docs** (if they exist):
+   - `@docs/context.md` - WHY THIS PACKAGE EXISTS (package purpose, boundaries, consumers)
+   - `@docs/poiesis.md` - The methodology
+   - `README.md` - The role of component being developed must be clear from the start
+   - `@docs/testing-principles.md` - Testing requirements
+   - `@docs/developer-principles.md` - Development guidelines
+
+3. **Check Prerequisites:**
+   - Verify `@nx-intelligence/xronox` is installed: `npm list @nx-intelligence/xronox`
+   - Verify `@sagente/xronolog` is installed: `npm list @sagente/xronolog`
+   - Check `athenix-config.json` exists: `ls -la athenix-config.json`
+   - If missing: STOP and request from user
+
+4. **Understand Scope:**
+   - This is an **athenix sub-package**
+   - Use **@sagente/xronolog** for logging (ROOT package)
+   - Use **@nx-intelligence/xronox** for data operations (ROOT package)
+   - NO @sagente/athenix (this IS athenix - you're building it)
+   - NO intelligence tier usage (this IS the intelligence tier)
+   - NO sub-package references (only ROOT packages exist externally)
+
+## Package Type Recognition
+
+**How to identify Poiesis packages:**
+- **Private packages** (in package.json: `"private": true`) → These are Poiesis packages
+- **Exception:** `@nx-intelligence/xronox` → Can be public (only exception)
+- **Public packages** → NOT Poiesis packages, treat as external dependencies
+
+**Implications:**
+- Poiesis packages → Apply all Poiesis principles
+- External packages → Use as dependencies, no Poiesis enforcement
+
+## Key Flow
+
+1. **Applications/Services** → Only interact with **Root package**
+2. **Root package** → Orchestrates and exposes sub-package functionality
+3. **Sub-packages** → Handle one specific functionality each
+4. **Config** → Consumed by Root and sub-packages
+5. **Each component** → Has only ONE role and is an expert at it
+
+## Athenix Scope Rules
+
+### Logging
+- **Use:** `@sagente/xronolog` for all logging needs
+- **Don't use:** `logs-gateway` (too basic for athenix needs)
+- **Reason:** xronolog provides data tier integration and audit trails
+
+### Data Operations
+- **Use:** `@nx-intelligence/xronox` for all data operations
+- **Don't use:** Direct MongoDB clients (bypasses data tier abstraction)
+- **Reason:** xronox provides versioning, audit trails, multi-tenancy
+
+### Infrastructure
+- **Available:** `@nx-intelligence/xronox`, `@sagente/xronolog`
+- **Not available:** `@sagente/athenix` (this IS the intelligence tier)
+- **Scope:** Data tier + logging infrastructure
+
+## Core Principles
+
+1. **Expertise Separation** - Each component has only one role
+2. **Context-Driven Development** - Package context drives all decisions
+3. **Evidence-Based Testing** - All tests must provide I/O proof
+4. **Infrastructure Abstraction** - Use provided infrastructure packages
+5. **Single Role Principle** - Each component is an expert at one thing
+
+## Quality Standards
+
+### Documentation
+- Every package must have `context.md`
+- All functions must be documented with examples
+- Architecture decisions must be explained
+- Consumer needs must be clearly stated
+
+### Testing
+- Evidence-based testing with I/O proof
+- No tests without clear input/output examples
+- Documentation must be tested, not just code
+- Test coverage must reflect consumer usage
+
+### Code Quality
+- Single responsibility principle
+- Clear separation of concerns
+- No circular dependencies
+- Infrastructure abstraction enforced
+
+## Anti-Patterns
+
+❌ **Don't do these:**
+- Mix multiple expertises in one component
+- Implement your own infrastructure
+- Write tests without I/O examples
+- Skip documentation
+- Create circular dependencies
+- Ignore consumer needs
+- Make changes without planning
+- Use `@sagente/athenix` (circular dependency)
+- Use direct MongoDB clients (bypasses data tier)
+
+✅ **Do these instead:**
+- Focus each component on one expertise
+- Use `@sagente/xronolog` for logging
+- Use `@nx-intelligence/xronox` for data operations
+- Write evidence-based tests
+- Document everything thoroughly
+- Maintain clear boundaries
+- Build for specific consumers
+- Plan before acting
+
+## Success Metrics
+
+An athenix sub-package following Poiesis principles should have:
+
+- ✅ Clear `context.md` defining purpose and boundaries
+- ✅ No direct infrastructure calls (console.log, direct MongoDB, direct AI APIs)
+- ✅ All functions documented with examples
+- ✅ Tests with I/O proof
+- ✅ Clear separation between functions
+- ✅ Consumer-focused documentation
+- ✅ No circular dependencies
+- ✅ Evidence-based decision making
+- ✅ Uses `@sagente/xronolog` for logging
+- ✅ Uses `@nx-intelligence/xronox` for data operations

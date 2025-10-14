@@ -1,0 +1,37 @@
+{
+  "ai": {
+    "providers": {
+      "openai": {
+        "apiKey": "ENV.OPENAI_API_KEY",
+        "model": "gpt-4",
+        "temperature": 0.7,
+        "maxTokens": 4000
+      },
+      "anthropic": {
+        "apiKey": "ENV.ANTHROPIC_API_KEY",
+        "model": "claude-3-sonnet"
+      }
+    },
+    "defaultProvider": "openai"
+  },
+  "memory": {
+    "enabled": true,
+    "persistence": true,
+    "ttl": 86400
+  },
+  "learning": {
+    "enabled": true,
+    "knowledgeGraph": true,
+    "questionRegistry": true
+  },
+  "integration": {
+    "dataTier": {
+      "enabled": true,
+      "storeInteractions": true
+    },
+    "logging": {
+      "enabled": true,
+      "logLevel": "INFO"
+    }
+  }
+}

@@ -1,0 +1,332 @@
+---
+rule_type: auto
+description: Standard verification gates for all code changes
+globs: "*"
+---
+
+# Poiesis Verification (AUTO-ATTACH)
+
+## Before Completing ANY Change
+
+**Run these verification steps and show output:**
+
+### 1. Type Check
+
+```bash
+# If TypeScript project
+npm run typecheck
+
+# Or
+tsc --noEmit
+
+# Show output:
+# ✓ No type errors
+# OR
+# ✗ Found N errors - fix before proceeding
+```
+
+**Must pass:** Zero type errors
+
+### 2. Tests
+
+```bash
+# Run all tests
+npm test
+
+# Show output:
+# ✓ All tests passed (N tests)
+# OR
+# ✗ N tests failed - fix before proceeding
+```
+
+**Must pass:** All tests passing
+
+### 3. Build
+
+```bash
+# Verify clean build
+npm run build
+
+# Show output:
+# ✓ Build successful
+# OR
+# ✗ Build failed - fix before proceeding
+```
+
+**Must pass:** Clean build, no errors
+
+### 4. Linting (if configured)
+
+```bash
+# Check code style
+npm run lint
+
+# Show output if available
+```
+
+**If lint errors:** Fix or document why ignored
+
+## Documentation Verification
+
+**Check these were updated:**
+
+### Component README
+
+**If component interface changed:**
+```markdown
+## Component README Updated
+
+**File:** components/[component]/README.md
+
+**Sections Updated:**
+- [ ] Interface (new/changed methods listed)
+- [ ] Sub-components (if structure changed)
+- [ ] Dependencies (if deps changed)
+- [ ] Examples (if usage changed)
+
+**Changes:**
+- Added: [list new methods]
+- Changed: [list modified methods]
+- Removed: [list deprecated methods]
+```
+
+### Architecture Documentation
+
+**If structure changed:**
+```markdown
+## Architecture Updated
+
+**File:** @docs/architecture.md
+
+**Sections Updated:**
+- [ ] Component list (new component added)
+- [ ] Composition map (relationships updated)
+- [ ] Dependencies (updated dep tree)
+
+**Changes:**
+[Specific changes made]
+```
+
+### Q&A Documentation
+
+**If learned something:**
+```markdown
+## QA Updated
+
+**File:** @docs/qa.md
+
+**New Entry:**
+### Q: [Question or learning]
+**Date:** [today's date]
+**Context:** [what led to this]
+**A:** [the learning]
+**Impact:** [how this affects future work]
+```
+
+### Test Documentation
+
+**If testing changed:**
+```markdown
+## Test Plan Updated
+
+**File:** components/[component]/test-plan.md
+
+**Updates:**
+- [ ] New demos added to plan
+- [ ] Execution status updated
+- [ ] Coverage checklist updated
+- [ ] Environment requirements updated
+
+**Testing Evidence:**
+- New demos: [N]
+- With I/O evidence: [N/N]
+- All passing: [yes/no]
+```
+
+## Composition Impact Analysis
+
+**For any code change, document:**
+
+```markdown
+## Composition Impact
+
+**Changed Component:** [ComponentName]
+**Change Type:** [Interface/Implementation/Structure]
+
+**Direct Dependencies (use this):**
+- [Component1] - Impact: [how affected]
+- [Component2] - Impact: [how affected]
+
+**Dependents (use this component):**
+- [Component3] - Impact: [how affected]
+- [Component4] - Impact: [how affected]
+
+**Composition Patterns Affected:**
+- [Pattern1]: [still works / needs update]
+- [Pattern2]: [still works / needs update]
+
+**Breaking Changes:**
+- [ ] Yes - [what breaks]
+- [ ] No - backward compatible
+
+**Migration Path (if breaking):**
+[How dependents should adapt]
+```
+
+## Boundary Verification
+
+**Verify boundaries maintained:**
+
+```markdown
+## Boundary Check
+
+**Component:** [name]
+**Expertise:** [what it knows]
+
+**Verify:**
+- [ ] No mixing with other expertises
+- [ ] Sub-components have single functions
+- [ ] No reaching into other components' internals
+- [ ] Composition follows approved patterns
+
+**If violations found:**
+[List and explain]
+```
+
+## Test Evidence Verification
+
+**If added/changed testing:**
+
+```bash
+# Verify all demos have evidence
+ls components/[component]/demos/*/io/output.json
+
+# Should list all output files
+# If any missing → not tested
+```
+
+```markdown
+## Test Evidence Check
+
+**Component:** [name]
+**Demos:** [N total]
+
+**Verification:**
+- [ ] All demos have demo.md
+- [ ] All demos have demo.ts
+- [ ] All demos have io/input.json
+- [ ] All demos have io/output.json (REAL)
+- [ ] All outputs are from real services
+- [ ] No mock-only critical tests
+
+**Evidence Location:**
+components/[component]/demos/
+
+**Can be reviewed:** Yes / No - [if no, why]
+```
+
+## Environment Verification
+
+**If change requires environment:**
+
+```markdown
+## Environment Check
+
+**Requirements Updated:**
+- [ ] @docs/environment-requirements.md updated
+- [ ] New services documented
+- [ ] New credentials listed
+- [ ] Verification commands added
+
+**Current Environment:**
+- [ ] All requirements met
+- [ ] Partial - missing: [list]
+- [ ] Not met - need: [list]
+
+**Testing Status:**
+- [ ] Can run real tests
+- [ ] Blocked - waiting for: [list]
+```
+
+## Final Checklist
+
+**Before claiming "Done":**
+
+- [ ] All verification commands passed
+- [ ] All documentation updated
+- [ ] Composition impact documented
+- [ ] Boundaries maintained
+- [ ] Test evidence present (if testing)
+- [ ] Environment documented (if changed)
+- [ ] No breaking changes without migration path
+- [ ] Human reviewed changes (in Act stage)
+
+## Output Format
+
+**Show verification results like this:**
+
+```markdown
+## Verification Complete
+
+### Type Check
+✓ No type errors
+
+### Tests
+✓ All 47 tests passed
+
+### Build
+✓ Clean build
+
+### Documentation
+✓ README.md updated (Interface section)
+✓ architecture.md updated (added Component X)
+✓ qa.md updated (documented pattern)
+
+### Composition Impact
+- ComponentA: Uses new interface method (backward compatible)
+- ComponentB: No changes needed (internal change)
+
+### Boundaries
+✓ No violations detected
+✓ All expertises properly separated
+
+### Test Evidence
+✓ 3 new demos added
+✓ All have input.json + output.json
+✓ All real connections verified
+
+### Environment
+✓ Requirements documented
+⚠️  Waiting for OPENAI_API_KEY (requested from human)
+
+**Status:** Complete (pending environment for full testing)
+```
+
+## If Verification Fails
+
+**Do NOT proceed. Fix issues first.**
+
+```markdown
+## Verification FAILED
+
+### Failed Checks
+✗ Type check: 3 errors found
+✗ Tests: 2 failing
+✓ Build: OK
+
+### Must Fix
+1. [Error 1]: [description]
+   Location: [file:line]
+   Fix: [what to do]
+
+2. [Error 2]: [description]
+   Location: [file:line]
+   Fix: [what to do]
+
+**Cannot complete until all checks pass.**
+```
+
+## Reference
+
+Full verification requirements: `@docs/poiesis.md` (Testing section)
+Test verification: `@docs/testing-principles.md`

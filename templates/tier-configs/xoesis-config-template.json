@@ -1,0 +1,26 @@
+{
+  "comment": "Configuration template for Discovery Tier (@sagente/xoesis)",
+  "comment2": "Copy to project root as xoesis-config.json and fill in values",
+  
+  "<to-do: main-config-key>": {
+    "<to-do: setting1>": "ENV::ENV_VARIABLE_NAME",
+    "<to-do: setting2>": "value"
+  },
+  
+  "connectionSettings": {
+    "comment": "If this tier needs database/external connections",
+    "dbConnection": "ENV::DATABASE_URL",
+    "apiEndpoint": "ENV::API_ENDPOINT"
+  },
+  
+  "features": {
+    "comment": "Feature flags for this tier",
+    "featureA": {
+      "enabled": true
+    },
+    "featureB": {
+      "enabled": false
+    }
+  }
+}
+

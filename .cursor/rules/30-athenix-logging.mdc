@@ -1,0 +1,321 @@
+---
+rule_type: always
+description: Enforce xronolog usage for athenix packages - NEVER use logs-gateway
+globs: "*"
+---
+
+# Poiesis Athenix Logging (ALWAYS ACTIVE)
+
+## Core Principle
+
+**Your athenix packages must use @sagente/xronolog for logging. Don't use logs-gateway.**
+
+Just as you never write MongoDB queries directly (you use the data tier) or console.log() directly (you use the logging tier), you should **never** use logs-gateway in athenix packages. **Always** use @sagente/xronolog.
+
+## Why xronolog?
+
+- **Data tier integration** - Logs are persisted via xronox
+- **Audit trails** - Complete audit trail of all operations
+- **Multi-tenancy** - Tenant-aware logging
+- **Time-travel queries** - Query logs by time ranges
+
+## The Rule
+
+> **If you're building athenix packages: Use `@sagente/xronolog`**
+> **If you're building xronox packages: Use `logs-gateway`**
+
+## Setup (once at startup)
+
+```typescript
+// src/logging/logger.ts
+import { createLogger } from '@sagente/xronolog';
+
+let loggerInstance = null;
+
+export function getLogger() {
+  if (loggerInstance) return loggerInstance;
+  
+  loggerInstance = createLogger({
+    level: process.env.LOG_LEVEL || 'INFO',
+    service: 'my-athenix-package'
+  });
+  
+  return loggerInstance;
+}
+```
+
+## Usage Examples
+
+### ✅ CORRECT Usage
+
+```typescript
+import { getLogger } from './src/logging/logger';
+
+const logger = getLogger();
+
+// Structured logging with data tier persistence
+logger.info('AI operation completed', { 
+  operation: 'generate',
+  model: 'gpt-4',
+  prompt: 'Generate content',
+  response: aiResponse,
+  duration: 1500,
+  tokens: 250
+});
+
+logger.error('AI operation failed', { 
+  operation: 'generate',
+  model: 'gpt-4',
+  error: error.message,
+  retryCount: 3,
+  prompt: 'Generate content'
+});
+
+logger.debug('AI request details', {
+  operation: 'generate',
+  model: 'gpt-4',
+  temperature: 0.7,
+  maxTokens: 4000,
+  promptLength: prompt.length
+});
+```
+
+### ❌ WRONG Usage
+
+```typescript
+// DON'T DO THIS - too basic for athenix needs
+import { createLogger } from 'logs-gateway';
+
+// DON'T DO THIS - bypasses logging infrastructure
+console.log('AI operation completed');
+console.error('AI operation failed');
+
+// DON'T DO THIS - no structured logging
+console.log(`AI operation completed in ${duration}ms`);
+```
+
+## 5-Level System
+
+Use the standard 5-level system:
+
+- **ERROR** - System errors, exceptions
+- **WARN** - Warning conditions
+- **INFO** - General information
+- **DEBUG** - Debug information
+- **VERBOSE** - Very detailed information
+
+## Configuration
+
+```typescript
+const logger = createLogger({
+  level: 'INFO',                    // Minimum log level
+  service: 'athenix-ai-processes',  // Service identifier
+  environment: 'production',        // Environment context
+  enableAuditTrail: true,          // Enable audit trails
+  enablePersistence: true          // Enable data tier persistence
+});
+```
+
+## Integration with athenix-config.json
+
+```typescript
+// Read logging config from athenix-config.json
+import { readConfig } from './config';
+
+const config = await readConfig('./athenix-config.json');
+const logger = createLogger({
+  level: config.integration?.logging?.logLevel || 'INFO',
+  service: config.service?.name || 'athenix-package',
+  enableAuditTrail: config.integration?.logging?.logInteractions || true,
+  enablePersistence: config.integration?.dataTier?.storeInteractions || true
+});
+```
+
+## AI Operation Logging
+
+```typescript
+try {
+  const startTime = Date.now();
+  
+  // Your AI operation
+  const result = await performAIOperation({
+    prompt: 'Generate content',
+    model: 'gpt-4',
+    temperature: 0.7
+  });
+  
+  const duration = Date.now() - startTime;
+  
+  logger.info('AI operation completed', {
+    operation: 'generate',
+    model: 'gpt-4',
+    prompt: 'Generate content',
+    response: result.content,
+    duration,
+    tokens: result.usage?.total_tokens,
+    success: true
+  });
+  
+} catch (error) {
+  logger.error('AI operation failed', {
+    operation: 'generate',
+    model: 'gpt-4',
+    prompt: 'Generate content',
+    error: error.message,
+    stack: error.stack,
+    success: false
+  });
+  
+  throw error;
+}
+```
+
+## Performance Logging
+
+```typescript
+const startTime = Date.now();
+
+// Your AI operation
+await performAIOperation();
+
+const duration = Date.now() - startTime;
+
+logger.info('AI operation performance', {
+  operation: 'generate',
+  model: 'gpt-4',
+  duration,
+  performance: duration > 5000 ? 'slow' : 'fast',
+  tokensPerSecond: result.usage?.total_tokens / (duration / 1000)
+});
+```
+
+## When to Use Each Level
+
+### ERROR
+```typescript
+logger.error('AI provider unavailable', {
+  provider: 'openai',
+  error: error.message,
+  retryAttempt: 3,
+  lastSuccessfulCall: lastCallTime
+});
+```
+
+### WARN
+```typescript
+logger.warn('High token usage detected', {
+  operation: 'generate',
+  model: 'gpt-4',
+  tokens: 8000,
+  threshold: 4000,
+  cost: estimatedCost
+});
+```
+
+### INFO
+```typescript
+logger.info('AI operation completed', {
+  operation: 'generate',
+  model: 'gpt-4',
+  prompt: 'Generate content',
+  response: result.content,
+  duration: 1500,
+  success: true
+});
+```
+
+### DEBUG
+```typescript
+logger.debug('AI request details', {
+  operation: 'generate',
+  model: 'gpt-4',
+  temperature: 0.7,
+  maxTokens: 4000,
+  promptLength: prompt.length,
+  requestId: requestId
+});
+```
+
+### VERBOSE
+```typescript
+logger.verbose('Detailed AI operation trace', {
+  operation: 'generate',
+  steps: [
+    { step: 'validateInput', duration: 2 },
+    { step: 'prepareRequest', duration: 5 },
+    { step: 'callAI', duration: 1500 },
+    { step: 'processResponse', duration: 8 },
+    { step: 'storeResult', duration: 15 }
+  ],
+  totalDuration: 1530,
+  requestId: requestId
+});
+```
+
+## Testing
+
+```typescript
+import { getLogger } from './src/logging/logger';
+
+describe('Logging', () => {
+  it('should log structured AI operation data', () => {
+    const logger = getLogger();
+    
+    // Mock logger to capture output
+    const mockLog = jest.fn();
+    logger.info = mockLog;
+    
+    // Your AI operation
+    logger.info('AI operation completed', { 
+      operation: 'generate',
+      model: 'gpt-4',
+      duration: 1500
+    });
+    
+    // Verify structured logging
+    expect(mockLog).toHaveBeenCalledWith('AI operation completed', {
+      operation: 'generate',
+      model: 'gpt-4',
+      duration: 1500
+    });
+  });
+});
+```
+
+## Migration from console.log
+
+### Before (console.log)
+```typescript
+console.log('AI operation completed:', result);
+console.error('AI operation failed:', error.message);
+```
+
+### After (xronolog)
+```typescript
+import { getLogger } from './src/logging/logger';
+
+const logger = getLogger();
+
+logger.info('AI operation completed', { 
+  operation: 'generate',
+  result: result,
+  model: 'gpt-4'
+});
+logger.error('AI operation failed', { 
+  operation: 'generate',
+  error: error.message,
+  model: 'gpt-4'
+});
+```
+
+## Complete Documentation
+
+For complete documentation, see `@docs/xronolog.md`.
+
+## Remember
+
+- **athenix packages** → Use `@sagente/xronolog`
+- **xronox packages** → Use `logs-gateway`
+- **External applications** → Use `@sagente/xronolog`
+- **Never mix** → Don't use both in the same package
+- **Data tier integration** → xronolog persists logs via xronox

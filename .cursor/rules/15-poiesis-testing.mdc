@@ -1,0 +1,245 @@
+---
+rule_type: auto
+description: Testing requirements and real test enforcement
+globs:
+  - "components/**/test-plan.md"
+  - "components/**/demos/**"
+  - "**/*.test.ts"
+  - "**/*.spec.ts"
+---
+
+# Poiesis Testing (AUTO-ATTACH)
+
+## Core Testing Rule
+
+**Testing means it works FOR REAL.**
+
+Not "might work" or "works with mocks" - actually works with real services, real data, real responses captured as evidence.
+
+## Before ANY Implementation
+
+**Create test plan FIRST:**
+
+```bash
+# In Plan mode, propose:
+components/[component]/test-plan.md
+```
+
+Use template: `@docs/templates/test-plan-cursor.md`
+
+**Test plan must include:**
+- [ ] Every function to test
+- [ ] All use cases to cover
+- [ ] All edge cases to handle
+- [ ] External services needed
+- [ ] Environment requirements
+- [ ] Real vs mock testing strategy
+
+## Environment Check (CRITICAL)
+
+**Before running ANY real test:**
+
+```bash
+# Check environment requirements
+cat docs/environment-requirements.md
+
+# Verify what's available
+npm run verify:env
+```
+
+**If environment missing:**
+1. Document in test plan: "Blocked on environment"
+2. Request from human using template
+3. **STOP** - do not proceed with only mocks
+4. Write test code anyway (ready to execute)
+5. Mark status: "Waiting for environment"
+
+**Template for requesting:**
+```markdown
+## BLOCKED: Need Environment for Real Testing
+
+See: @docs/environment-requirements.md
+
+**Missing:**
+- [specific service/credential]
+
+**Need it for:**
+- [specific test/demo]
+
+**Will provide evidence:**
+- input.json + output.json for [N] demos
+```
+
+## Demo Structure (REQUIRED)
+
+**Every test must be a "demo":**
+
+```
+components/[component]/demos/[sub-component]/[demo-name]/
+├── demo.md          # What this tests
+├── demo.ts          # Executable code
+└── io/
+    ├── input.json   # Actual input sent
+    └── output.json  # REAL response received
+```
+
+**CRITICAL:** If `output.json` doesn't exist → demo didn't run → not tested
+
+## Real Test Requirements
+
+**Every demo must:**
+
+1. **Connect to real service:**
+   ```typescript
+   // ✅ CORRECT
+   const openai = new OpenAI({
+     apiKey: process.env.OPENAI_API_KEY // Real credential
+   });
+   const response = await openai.chat.completions.create({...});
+   ```
+
+2. **Capture actual input:**
+   ```typescript
+   fs.writeFileSync('io/input.json', 
+     JSON.stringify(input, null, 2));
+   ```
+
+3. **Capture real output:**
+   ```typescript
+   fs.writeFileSync('io/output.json',
+     JSON.stringify(response, null, 2));
+   ```
+
+4. **Validate results:**
+   ```typescript
+   assert(response.meets.expectations);
+   ```
+
+## Mock Tests (Allowed but Insufficient)
+
+**When mocks are acceptable:**
+- Testing error handling paths
+- Testing internal logic
+- Supplementing real tests
+- While waiting for environment
+
+**When mocks are NOT acceptable:**
+- As only test for external integration
+- Without plan to add real test
+- When environment could be provided
+- To fake test evidence
+
+**Mark clearly:**
+```typescript
+// In demo.md
+## Test Type
+- [ ] Real Test (connects to actual services)
+- [x] Mock Test (simulates services)
+
+**Why Mock:**
+[Explain why real test not possible]
+```
+
+## Coverage Requirements
+
+**Before claiming component is tested:**
+
+- [ ] Test plan exists and complete
+- [ ] Every public method has ≥1 real demo
+- [ ] Every sub-component function demonstrated
+- [ ] All use cases covered
+- [ ] All edge cases tested
+- [ ] Every demo has input.json
+- [ ] Every demo has output.json (REAL)
+- [ ] All outputs validated as correct
+- [ ] Real services were contacted
+- [ ] No critical functionality relies only on mocks
+
+## Verification Commands
+
+**After running demos:**
+
+```bash
+# Verify all demos have evidence
+for demo in components/*/demos/*/*/; do
+  if [ ! -f "$demo/io/output.json" ]; then
+    echo "❌ Missing output: $demo"
+  fi
+done
+
+# Should output nothing if all tests have evidence
+```
+
+**In Plan mode, show this verification:**
+```markdown
+## Test Evidence Verification
+
+Checked: [N] demos
+✓ All have output.json
+✓ All outputs are from real services
+✓ All validations passed
+```
+
+## When Test Fails
+
+**Capture failure as evidence:**
+
+```typescript
+catch (error) {
+  fs.writeFileSync('io/output.json',
+    JSON.stringify({
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      input: input
+    }, null, 2)
+  );
+  throw error;
+}
+```
+
+**Then:**
+1. Analyze failure (code bug vs environment issue)
+2. File bug report if code issue
+3. Request environment fix if infrastructure
+4. Document in `@docs/qa.md`
+5. Fix and re-run
+
+## Before Marking Component Complete
+
+**Verification checklist:**
+
+```markdown
+## Testing Complete Checklist
+
+- [ ] Test plan exists: `components/[component]/test-plan.md`
+- [ ] All functions tested: [X/Y complete]
+- [ ] All use cases covered: [X/Y complete]
+- [ ] All edge cases tested: [X/Y complete]
+- [ ] Environment verified: `npm run verify:env` passed
+- [ ] All demos executed: [X/Y with real connections]
+- [ ] All evidence captured: [X/Y with output.json]
+- [ ] All validations passed: [X/Y successful]
+- [ ] Test plan status: "Complete"
+- [ ] `@docs/architecture.md` updated with testing status
+- [ ] `@docs/qa.md` updated with learnings
+
+**Evidence location:** `components/[component]/demos/`
+**Can be reviewed:** Yes, all I/O files present
+```
+
+## Anti-Patterns (NEVER)
+
+❌ Creating output.json from mock data
+❌ Claiming "tested" without real evidence
+❌ Skipping environment verification
+❌ Only mock tests for external integrations
+❌ Missing test plans
+❌ Demos without I/O evidence
+❌ Proceeding when blocked on environment
+
+## Reference
+
+Full testing principles: `@docs/testing-principles.md`
+Test plan template: `@docs/templates/test-plan-cursor.md`
+Demo template: `@docs/templates/demo-template-cursor.md`

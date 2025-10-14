@@ -1,0 +1,277 @@
+---
+rule_type: agent_requested
+description: For legacy repos being migrated to Poiesis
+---
+
+# Poiesis Migration (ON REQUEST)
+
+## When Asked to Migrate Existing Project
+
+**DO NOT rewrite everything at once.**
+
+Use gradual, opportunistic migration strategy.
+
+## First Session Assessment
+
+**In Plan mode, propose creating:**
+
+1. **Assessment document:**
+   ```markdown
+   # In @docs/architecture.md
+   
+   ## Current State Assessment
+   
+   ### Implicit Components Found:
+   - Data access: spread across [files]
+   - Business logic: mixed in [files]
+   - API handling: in [files]
+   - Authentication: in [files]
+   
+   ### Current Testing:
+   - Unit tests: [where/coverage]
+   - Integration tests: [real or mock?]
+   - Test evidence: [exists?]
+   
+   ### Gaps:
+   - [ ] No clear component boundaries
+   - [ ] No test plans
+   - [ ] No real test evidence
+   - [ ] Mixed concerns in [areas]
+   
+   ### Recommended Structure:
+   [Propose component breakdown]
+   ```
+
+2. **Migration plan:**
+   ```markdown
+   ## Migration Plan
+   
+   ### Phase 1: Foundation (Week 1)
+   - [ ] Create `/docs/` structure
+   - [ ] Document existing implicit components
+   - [ ] Set up environment requirements
+   - [ ] Create test plans for critical paths
+   
+   ### Phase 2: Extract Critical Components (Week 2-3)
+   - [ ] Extract Data component from [files]
+   - [ ] Extract Auth component from [files]
+   - [ ] Add real tests with I/O evidence
+   
+   ### Phase 3: Refactor Business Logic (Week 4-5)
+   - [ ] Identify business rules
+   - [ ] Create BusinessLogic components
+   - [ ] Extract from API layer
+   
+   ### Phase 4: API Layer (Week 6)
+   - [ ] Create API components
+   - [ ] Separate from business logic
+   - [ ] Ensure clean composition
+   
+   **Note:** New code always follows Poiesis immediately.
+   Existing code refactored opportunistically.
+   ```
+
+3. **Testing strategy:**
+   ```markdown
+   ## Testing Migration Strategy
+   
+   ### Immediate (Do Now):
+   - [ ] Document environment requirements
+   - [ ] Create test plans for existing features
+   - [ ] Identify what can be tested real vs mock
+   
+   ### Gradual (As We Refactor):
+   - [ ] Add real tests with I/O evidence
+   - [ ] Replace mock tests with real tests
+   - [ ] Capture evidence for all functionality
+   
+   ### Goal:
+   All components proven to work with real test evidence.
+   ```
+
+## Migration Rules
+
+### For New Code
+
+**Always follow Poiesis immediately:**
+- ✅ Identify expertise needed
+- ✅ Create proper component structure
+- ✅ Write test plan before implementation
+- ✅ Add real tests with evidence
+- ✅ Follow all boundaries
+
+### For Existing Code
+
+**Opportunistic refactoring:**
+- When touching file, assess if it can be improved
+- If small change → make it, note in qa.md
+- If large change → propose refactor in Plan mode
+- Extract components when boundaries are clear
+- Add tests as you work
+
+**Never:**
+- Big-bang rewrites
+- Breaking everything to "fix" it
+- Refactoring without tests
+- Claiming "better" without evidence
+
+## Identifying Implicit Components
+
+**Look for code that groups by expertise:**
+
+```typescript
+// Data access scattered
+// → Potential DataComponent
+db.query(...) in user.service.ts
+db.query(...) in order.service.ts
+db.query(...) in product.service.ts
+
+// Authentication scattered
+// → Potential AuthComponent
+jwt.verify(...) in middleware.ts
+jwt.sign(...) in login.ts
+checkPermissions(...) in routes.ts
+```
+
+**Document findings:**
+```markdown
+## Implicit Components
+
+### DataAccess (Implicit)
+**Files:** [list]
+**Functions:** [list]
+**Should be:** DataComponent with sub-components
+**Priority:** High (used everywhere)
+
+### Authentication (Implicit)
+**Files:** [list]
+**Functions:** [list]
+**Should be:** AuthComponent
+**Priority:** High (security critical)
+```
+
+## Extraction Strategy
+
+**Phase-by-phase:**
+
+### Phase 1: Document and Plan
+- Map existing code to potential components
+- No code changes yet
+- Get human approval on plan
+
+### Phase 2: Extract Foundation
+- Start with most critical/reused
+- Usually: Data, Auth, Config
+- Add real tests as you extract
+
+### Phase 3: Business Logic
+- Identify domain rules
+- Extract from controllers/routes
+- Create focused components
+
+### Phase 4: Polish
+- Ensure all boundaries clear
+- Complete test coverage
+- Remove old code
+
+## When Touching Legacy Code
+
+**Decision tree:**
+
+```
+Is this a small fix?
+├─ Yes → Fix it, apply Poiesis where easy, note in qa.md
+└─ No → Is refactor needed?
+    ├─ Yes → Propose refactor in Plan mode
+    │       Wait for approval
+    │       Extract to proper component
+    │       Add real tests
+    └─ No → Make minimal change
+            Note technical debt in qa.md
+            Continue
+```
+
+## Technical Debt Tracking
+
+**In @docs/qa.md:**
+
+```markdown
+## Technical Debt
+
+### High Priority
+- [ ] User management mixes data, business, API
+      Location: src/user/
+      Impact: Hard to test, hard to change
+      Plan: Extract in Phase 2
+
+### Medium Priority
+- [ ] Email sending scattered in 5 files
+      Should be: CommunicationComponent
+      Blocks: Need SMTP environment setup
+      
+### Low Priority
+- [ ] Logging inconsistent
+      Could be: ObservabilityComponent
+      Can wait: Works but could be better
+```
+
+## Migration Verification
+
+**After each phase:**
+
+```markdown
+## Phase [N] Complete
+
+**Extracted:**
+- [Component]: [expertise]
+  - Location: `components/[name]/`
+  - Tests: [N] demos with evidence
+  - Replacing: [old files]
+
+**Testing:**
+- [ ] Test plan created
+- [ ] Real tests with I/O evidence
+- [ ] All functionality proven
+
+**Documentation:**
+- [ ] Component README
+- [ ] Updated architecture.md
+- [ ] Learnings in qa.md
+
+**Old Code:**
+- [ ] Deprecated (not deleted yet)
+- [ ] Marked with comments
+- [ ] Will remove after validation
+
+**Next Phase:**
+[What's next]
+```
+
+## Red Flags (Stop and Discuss)
+
+**Stop migration if:**
+- Components getting too large
+- Boundaries still unclear
+- Tests not possible (environment issue)
+- Human wants different approach
+- Breaking critical functionality
+
+**Discuss with human before continuing.**
+
+## Success Criteria
+
+**Migration complete when:**
+- [ ] All components follow Poiesis structure
+- [ ] All components have test plans
+- [ ] All functionality has real test evidence
+- [ ] No implicit components remain
+- [ ] All boundaries clear
+- [ ] architecture.md accurately reflects system
+- [ ] qa.md documents migration lessons
+- [ ] Old code removed
+- [ ] Team can maintain going forward
+
+## Reference
+
+Migration checklist: `@docs/architecture.md` (Migration Plan section)
+Current status: `@docs/architecture.md` (Migration Status section)

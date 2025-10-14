@@ -1,0 +1,43 @@
+# Poiesis Infrastructure Environment Variables
+# Copy this to .env and fill in your values
+
+# ====================
+# LOGGING TIER
+# ====================
+LOG_LEVEL=DEBUG  # ERROR, WARN, INFO, DEBUG, or VERBOSE
+
+# ====================
+# DATA TIER (xronox)
+# ====================
+
+# MongoDB
+MONGODB_URI=mongodb://localhost:27017
+
+# S3/Spaces (Optional - can use local storage)
+AWS_S3_ENDPOINT=https://nyc3.digitaloceanspaces.com
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=your_access_key_here
+AWS_SECRET_ACCESS_KEY=your_secret_key_here
+
+# Redis (Optional for xronox, Required for athenix)
+REDIS_URL=redis://localhost:6379
+
+# ====================
+# INTELLIGENCE TIER (athenix)
+# ====================
+
+# AI Providers (At least one required)
+OPENAI_API_KEY=sk-proj-your-openai-key-here
+# ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
+# GOOGLE_API_KEY=your-google-ai-key-here
+
+# Note: athenix also requires MongoDB and Redis (configured above)
+
+# ====================
+# APPLICATION-SPECIFIC
+# ====================
+
+# Add your application-specific variables here
+# PORT=3000
+# NODE_ENV=development
+
